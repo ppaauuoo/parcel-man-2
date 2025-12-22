@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Sarabun', sans-serif;
+}
+
+@media (max-width: 640px) {
+  .mobile-container {
+    padding: 1rem;
+  }
+  
+  .mobile-form {
+    padding: 1.5rem;
+  }
+}

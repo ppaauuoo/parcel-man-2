@@ -71,8 +71,11 @@ export const parcelsAPI = {
     const response = await api.get(`/parcels/resident/${residentId}`);
     return response.data;
   },
-  collectParcel: async (parcelId: number, staffId: number): Promise<{ success: boolean; message: string }> => {
-    const response = await api.put(`/parcels/${parcelId}/collect`, { staff_id: staffId });
+  collectParcel: async (parcelId: number, staffId: number, evidencePhotoPath?: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.put(`/parcels/${parcelId}/collect`, { 
+      staff_id: staffId,
+      photo_out_path: evidencePhotoPath
+    });
     return response.data;
   },
   getHistory: async (filters?: {

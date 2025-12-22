@@ -3,6 +3,9 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import QRCode from 'qrcode';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { open, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { setupDatabaseSchema } from './db/schema';
@@ -12,9 +15,55 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'icondo-secret-key-change-in-production';
 
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), 'uploads');
+const parcelsUploadDir = path.join(uploadsDir, 'parcels');
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+if (!fs.existsSync(parcelsUploadDir)) {
+  fs.mkdirSync(parcelsUploadDir, { recursive: true });
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const parcelId = req.body.parcel_id || 'temp';
+    const parcelDir = path.join(parcelsUploadDir, parcelId);
+    if (!fs.existsSync(parcelDir)) {
+      fs.mkdirSync(parcelDir, { recursive: true });
+    }
+    cb(null, parcelDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  // Accept only image files
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed'));
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  }
+});
+
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use('/uploads', express.static(uploadsDir));
 
 // Database
 let db: Database;
@@ -151,10 +200,100 @@ app.get('/api/users/profile', authenticateToken, async (req: express.Request, re
   });
 });
 
+// Upload parcel photo (incoming)
+app.post('/api/upload/parcel-photo', authenticateToken, requireRole('staff'), upload.single('photo'), async (req: express.Request, res: express.Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No file uploaded',
+        message: 'กรุณาอัพโหลดรูปภาพ'
+      });
+    }
+
+    const photoPath = `/uploads/parcels/${req.body.parcel_id || 'temp'}/${req.file.filename}`;
+
+    return res.json({
+      success: true,
+      message: 'อัพโหลดรูปภาพเรียบร้อย',
+      photo_path: photoPath
+    });
+
+  } catch (error) {
+    console.error('Upload photo error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในการอัพโหลด' });
+  }
+});
+
+// Upload evidence photo (delivery)
+app.post('/api/upload/evidence-photo', authenticateToken, requireRole('staff'), upload.single('photo'), async (req: express.Request, res: express.Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No file uploaded',
+        message: 'กรุณาอัพโหลดรูปภาพหลักฐาน'
+      });
+    }
+
+    const photoPath = `/uploads/parcels/${req.body.parcel_id || 'temp'}/${req.file.filename}`;
+
+    return res.json({
+      success: true,
+      message: 'อัพโหลดรูปภาพหลักฐานเรียบร้อย',
+      photo_path: photoPath
+    });
+
+  } catch (error) {
+    console.error('Upload evidence photo error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในการอัพโหลด' });
+  }
+});
+
+// Upload base64 photo (for mobile compatibility)
+app.post('/api/upload/base64-photo', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
+  try {
+    const { image_data, parcel_id, photo_type } = req.body;
+
+    if (!image_data || !parcel_id || !photo_type) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'กรุณาระบุข้อมูลให้ครบถ้วน'
+      });
+    }
+
+    // Remove data URL prefix
+    const base64Data = image_data.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Generate unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const filename = `${photo_type}-${uniqueSuffix}.jpg`;
+    const parcelDir = path.join(parcelsUploadDir, parcel_id);
+
+    if (!fs.existsSync(parcelDir)) {
+      fs.mkdirSync(parcelDir, { recursive: true });
+    }
+
+    const filePath = path.join(parcelDir, filename);
+    fs.writeFileSync(filePath, buffer);
+
+    const photoPath = `/uploads/parcels/${parcel_id}/${filename}`;
+
+    return res.json({
+      success: true,
+      message: 'อัพโหลดรูปภาพเรียบร้อย',
+      photo_path: photoPath
+    });
+
+  } catch (error) {
+    console.error('Upload base64 photo error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในการอัพโหลด' });
+  }
+});
+
 // Create parcel
 app.post('/api/parcels', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
   try {
-    const { tracking_number, resident_id, carrier_name, room_number } = req.body;
+    const { tracking_number, resident_id, carrier_name, room_number, photo_in_path } = req.body;
 
     if (!tracking_number || (!resident_id && !room_number) || !carrier_name) {
       return res.status(400).json({ 
@@ -195,8 +334,8 @@ app.post('/api/parcels', authenticateToken, requireRole('staff'), async (req: ex
 
     // Insert new parcel
     const result = await db.run(
-      'INSERT INTO parcels (tracking_number, resident_id, carrier_name, status, staff_in_id, created_at) VALUES (?, ?, ?, "pending", ?, CURRENT_TIMESTAMP)',
-      [tracking_number, finalResidentId, carrier_name, req.user.id]
+      'INSERT INTO parcels (tracking_number, resident_id, carrier_name, photo_in_path, status, staff_in_id, created_at) VALUES (?, ?, ?, ?, "pending", ?, CURRENT_TIMESTAMP)',
+      [tracking_number, finalResidentId, carrier_name, photo_in_path || null, req.user.id]
     );
 
     // Get the created parcel
@@ -257,6 +396,7 @@ app.get('/api/parcels/resident/:id', authenticateToken, async (req: express.Requ
 app.put('/api/parcels/:id/collect', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
+    const { photo_out_path } = req.body;
 
     // Get parcel details
     const parcel = await db.get(
@@ -273,8 +413,8 @@ app.put('/api/parcels/:id/collect', authenticateToken, requireRole('staff'), asy
 
     // Update parcel status
     await db.run(
-      'UPDATE parcels SET status = "collected", collected_at = CURRENT_TIMESTAMP, staff_out_id = ? WHERE id = ?',
-      [req.user.id, id]
+      'UPDATE parcels SET status = "collected", collected_at = CURRENT_TIMESTAMP, staff_out_id = ?, photo_out_path = ? WHERE id = ?',
+      [req.user.id, photo_out_path || null, id]
     );
 
     return res.json({

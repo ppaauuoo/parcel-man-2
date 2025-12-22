@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import QRCode from 'qrcode.react';
 import { User, Parcel } from '../types';
 import { parcelsAPI } from '../utils/api';
+import QRCodeModal from './QRCodeModal';
 
 interface ResidentMyParcelsProps {
   user: User;
@@ -11,9 +11,15 @@ interface ResidentMyParcelsProps {
 const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout }) => {
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(null);
-  const [showQRCode, setShowQRCode] = useState(false);
-  const [qrCodeData, setQrCodeData] = useState<string>('');
+  const [qrCodeModal, setQRCodeModal] = useState<{
+    isOpen: boolean;
+    parcel: {
+      id: number;
+      tracking_number: string;
+      carrier_name: string;
+      qrCodeData: string;
+    } | null;
+  }>({ isOpen: false, parcel: null });
 
   useEffect(() => {
     loadParcels();
@@ -33,12 +39,18 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
   };
 
   const handleShowQRCode = async (parcel: Parcel) => {
-    setSelectedParcel(parcel);
     try {
       const response = await parcelsAPI.getQRCode(parcel.id);
       if (response.success) {
-        setQrCodeData(response.qrCode);
-        setShowQRCode(true);
+        setQRCodeModal({
+          isOpen: true,
+          parcel: {
+            id: parcel.id,
+            tracking_number: parcel.tracking_number,
+            carrier_name: parcel.carrier_name,
+            qrCodeData: response.qrCode
+          }
+        });
       }
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -250,63 +262,11 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
       </div>
 
       {/* QR Code Modal */}
-      {showQRCode && selectedParcel && (
-        <div className="fixed z-10 inset-0 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                      QR Code สำหรับรับพัสดุ
-                    </h3>
-                    <div className="mt-2">
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-4">
-                          แสดง QR Code นี้ให้เจ้าหน้าที่เพื่อรับพัสดุ
-                        </p>
-                        <div className="flex justify-center mb-4">
-                          {qrCodeData && (
-                            <div className="bg-white p-4 rounded-lg">
-                              <QRCode
-                                value={qrCodeData}
-                                size={200}
-                                level={"H"}
-                                includeMargin={true}
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm text-gray-600">
-                            เลขพัสดุ: {selectedParcel.tracking_number}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            ขนส่ง: {selectedParcel.carrier_name}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => setShowQRCode(false)}
-                >
-                  ปิด
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <QRCodeModal
+        isOpen={qrCodeModal.isOpen}
+        onClose={() => setQRCodeModal({ isOpen: false, parcel: null })}
+        parcel={qrCodeModal.parcel!}
+      />
     </div>
   );
 };

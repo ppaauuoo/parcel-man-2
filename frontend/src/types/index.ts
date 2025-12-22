@@ -42,4 +42,5 @@ export interface CreateParcelRequest {
   resident_id?: number;
   room_number?: string;
   carrier_name: string;
+  photo_in_path?: string;
 }

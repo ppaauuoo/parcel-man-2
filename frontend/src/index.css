@@ -15,3 +15,14 @@ body {
     padding: 1.5rem;
   }
 }
+
+/* Additional responsive styles */
+@media (max-width: 475px) {
+  .xs\:block {
+    display: block;
+  }
+  
+  .xs\:hidden {
+    display: none;
+  }
+}

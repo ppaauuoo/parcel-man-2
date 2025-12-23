@@ -52,47 +52,49 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md mx-auto sm:mx-auto sm:w-full">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">iCondo</h1>
-          <p className="mt-2 text-gray-600">ระบบจัดการพัสดุคอนโด</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">iCondo</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">ระบบจัดการพัสดุคอนโด</p>
         </div>
-        <h2 className="mt-6 text-center text-2xl font-extrabold text-gray-900">
+        <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl font-extrabold text-gray-900">
           เข้าสู่ระบบ
         </h2>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 mobile-form">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+      <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto sm:mx-auto sm:w-full">
+        <div className="bg-white py-6 sm:py-8 px-4 sm:px-6 lg:px-10 shadow-lg rounded-lg">
+          <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
             {/* Role Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2 sm:mb-3">
                 บทบาทผู้ใช้งาน
               </label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <button
                   type="button"
                   onClick={() => handleRoleChange('staff')}
-                  className={`relative inline-flex items-center justify-center px-4 py-3 text-sm font-medium rounded-md border ${
+                  className={`relative inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium rounded-md border ${
                     formData.role === 'staff'
                       ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                   } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
-                  เจ้าหน้าที่ (Juristic)
+                  <span className="hidden sm:inline">เจ้าหน้าที่ (Juristic)</span>
+                  <span className="sm:hidden">เจ้าหน้าที่</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleRoleChange('resident')}
-                  className={`relative inline-flex items-center justify-center px-4 py-3 text-sm font-medium rounded-md border ${
+                  className={`relative inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium rounded-md border ${
                     formData.role === 'resident'
                       ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                   } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
-                  ผู้อาศัย (Resident)
+                  <span className="hidden sm:inline">ผู้อาศัย (Resident)</span>
+                  <span className="sm:hidden">ผู้อาศัย</span>
                 </button>
               </div>
             </div>
@@ -110,7 +112,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   required
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                   placeholder="กรอกชื่อผู้ใช้หรือเบอร์โทรศัพท์"
                 />
               </div>
@@ -129,7 +131,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                   placeholder="กรอกรหัสผ่าน"
                 />
               </div>
@@ -147,7 +149,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                className={`w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
                   loading
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
@@ -166,8 +168,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </form>
 
           {/* Demo Information */}
-          <div className="mt-6 bg-gray-50 p-4 rounded-md">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">ข้อมูลสำหรับทดสอบ</h3>
+          <div className="mt-6 bg-gray-50 p-3 sm:p-4 rounded-md">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">ข้อมูลสำหรับทดสอบ</h3>
             <div className="text-xs text-gray-600 space-y-1">
               <p><strong>เจ้าหน้าที่:</strong> staff01 / staff123</p>
               <p><strong>ผู้อาศัย ห้อง 101:</strong> resident101 / resident123</p>

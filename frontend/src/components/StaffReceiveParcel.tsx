@@ -112,7 +112,7 @@ const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout 
       // Create parcel with photo path
       const parcelData = {
         ...formData,
-        photo_in_path: photoPath
+        photo_in_path: photoPath || undefined
       };
 
       const response = await parcelsAPI.createParcel(parcelData);
@@ -142,18 +142,18 @@ const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout 
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 sm:py-4 space-y-2 sm:space-y-0">
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">iCondo</h1>
-              <p className="text-sm text-gray-500">บันทึกรับพัสดุ</p>
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">iCondo</h1>
+              <p className="text-xs sm:text-sm text-gray-500">บันทึกรับพัสดุ</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+              <span className="text-xs sm:text-sm text-gray-600 truncate max-w-[200px] sm:max-w-none">
                 {user.username} ({user.role === 'staff' ? 'เจ้าหน้าที่' : 'ผู้อาศัย'})
               </span>
               <button
                 onClick={onLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium"
               >
                 ออกจากระบบ
               </button>
@@ -165,20 +165,20 @@ const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout 
       {/* Navigation */}
       <div className="bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
+          <div className="flex space-x-2 sm:space-x-6 lg:space-x-8 overflow-x-auto">
             <button
-              className="text-white py-3 px-3 rounded-t-md font-medium text-sm bg-blue-700"
+              className="text-white py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm bg-blue-700 whitespace-nowrap flex-shrink-0"
             >
               รับพัสดุ
             </button>
             <button
-              className="text-blue-100 py-3 px-3 rounded-t-md font-medium text-sm hover:text-white"
+              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
               onClick={() => window.location.href = '/delivery-out'}
             >
               ส่งมอบพัสดุ
             </button>
             <button
-              className="text-blue-100 py-3 px-3 rounded-t-md font-medium text-sm hover:text-white"
+              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
               onClick={() => window.location.href = '/history'}
             >
               ประวัติ
@@ -188,9 +188,9 @@ const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout 
       </div>
 
       {/* Main Content */}
-      <div className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-6">บันทึกรับพัสดุใหม่</h2>
+      <div className="max-w-2xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4 sm:mb-6">บันทึกรับพัสดุใหม่</h2>
 
           {message && (
             <div className={`rounded-md p-4 mb-6 ${
@@ -204,7 +204,7 @@ const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout 
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {/* Tracking Number */}
             <div>
               <label htmlFor="tracking_number" className="block text-sm font-medium text-gray-700">
@@ -286,7 +286,7 @@ const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout 
               title="ถ่ายรูปพัสดุ (ไม่บังคับ)"
               onCapture={(imageData) => setParcelPhoto(imageData)}
               onRemove={() => setParcelPhoto(null)}
-              existingPhoto={parcelPhoto}
+              existingPhoto={parcelPhoto || undefined}
             />
 
             {/* Submit Button */}

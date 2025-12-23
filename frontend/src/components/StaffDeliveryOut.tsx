@@ -35,7 +35,8 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
         fps: 10,
         qrbox: { width: 250, height: 250 },
         supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-      }
+      },
+      false
     );
 
     scanner.render(
@@ -92,16 +93,7 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
     }
   };
 
-  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEvidencePhoto(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  
 
   const handleConfirmPickup = async () => {
     if (!scannedParcel) return;
@@ -146,7 +138,7 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
       }
 
       // Collect parcel with evidence photo path
-      const response = await parcelsAPI.collectParcel(scannedParcel.id, user.id, evidencePhotoPath);
+      const response = await parcelsAPI.collectParcel(scannedParcel.id, user.id, evidencePhotoPath || undefined);
       if (response.success) {
         setMessage({ type: 'success', text: 'ยืนยันการรับพัสดุเรียบร้อย' });
         setScannedParcel(null);
@@ -175,18 +167,18 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 sm:py-4 space-y-2 sm:space-y-0">
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">iCondo</h1>
-              <p className="text-sm text-gray-500">ส่งมอบพัสดุ</p>
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">iCondo</h1>
+              <p className="text-xs sm:text-sm text-gray-500">ส่งมอบพัสดุ</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+              <span className="text-xs sm:text-sm text-gray-600 truncate max-w-[200px] sm:max-w-none">
                 {user.username} ({user.role === 'staff' ? 'เจ้าหน้าที่' : 'ผู้อาศัย'})
               </span>
               <button
                 onClick={onLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium"
               >
                 ออกจากระบบ
               </button>
@@ -198,20 +190,20 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
       {/* Navigation */}
       <div className="bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
+          <div className="flex space-x-2 sm:space-x-6 lg:space-x-8 overflow-x-auto">
             <button
-              className="text-blue-100 py-3 px-3 rounded-t-md font-medium text-sm hover:text-white"
+              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
               onClick={() => window.location.href = '/receive-parcel'}
             >
               รับพัสดุ
             </button>
             <button
-              className="text-white py-3 px-3 rounded-t-md font-medium text-sm bg-blue-700"
+              className="text-white py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm bg-blue-700 whitespace-nowrap flex-shrink-0"
             >
               ส่งมอบพัสดุ
             </button>
             <button
-              className="text-blue-100 py-3 px-3 rounded-t-md font-medium text-sm hover:text-white"
+              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
               onClick={() => window.location.href = '/history'}
             >
               ประวัติ
@@ -221,9 +213,9 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
       </div>
 
       {/* Main Content */}
-      <div className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-6">สแกน QR Code เพื่อส่งมอบพัสดุ</h2>
+      <div className="max-w-2xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4 sm:mb-6">สแกน QR Code เพื่อส่งมอบพัสดุ</h2>
 
           {/* Message */}
           {message && (
@@ -305,7 +297,7 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                 title="ถ่ายรูปหลักฐานการรับพัสดุ *"
                 onCapture={(imageData) => setEvidencePhoto(imageData)}
                 onRemove={() => setEvidencePhoto(null)}
-                existingPhoto={evidencePhoto}
+                existingPhoto={evidencePhoto || undefined}
               />
 
               {/* Action Buttons */}

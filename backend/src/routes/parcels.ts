@@ -215,20 +215,35 @@ export const parcelRoutes = new Elysia({ prefix: '/parcels' })
     try {
       const { id } = params;
 
-      // Generate QR code for parcel ID
-      const qrCodeData = JSON.stringify({
-        parcel_id: id,
-        type: 'parcel_collection',
-        timestamp: new Date().toISOString()
-      });
+      // Generate QR code for parcel ID - simplified data to avoid "Data too long" error
+      const qrCodeData = `PC:${id}`;
 
-      const qrCode = await QRCode.toDataURL(qrCodeData);
+      try {
+        const qrCode = await QRCode.toDataURL(qrCodeData, {
+          errorCorrectionLevel: 'L', // Using lower error correction for more capacity
+          margin: 1 // Reduce margin to save space
+        });
 
-      return {
-        success: true,
-        qrCode,
-        parcelId: id
-      };
+        return {
+          success: true,
+          qrCode,
+          parcelId: id
+        };
+      } catch (qrError) {
+        console.error('QR Code generation failed:', qrError);
+        // Fallback to a shorter code if even the minimal one fails
+        const fallbackData = `I${id}`;
+        const qrCode = await QRCode.toDataURL(fallbackData, {
+          errorCorrectionLevel: 'L',
+          margin: 1
+        });
+
+        return {
+          success: true,
+          qrCode,
+          parcelId: id
+        };
+      }
 
     } catch (error) {
       console.error('Generate QR code error:', error);

@@ -94,18 +94,18 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 sm:py-4 space-y-2 sm:space-y-0">
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">iCondo</h1>
-              <p className="text-sm text-gray-500">พัสดุของฉัน - ห้อง {user.room_number}</p>
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">iCondo</h1>
+              <p className="text-xs sm:text-sm text-gray-500">พัสดุของฉัน - ห้อง {user.room_number}</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+              <span className="text-xs sm:text-sm text-gray-600 truncate max-w-[200px] sm:max-w-none">
                 {user.username}
               </span>
               <button
                 onClick={onLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium"
               >
                 ออกจากระบบ
               </button>
@@ -117,14 +117,14 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
       {/* Navigation */}
       <div className="bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
+          <div className="flex space-x-2 sm:space-x-6 lg:space-x-8 overflow-x-auto">
             <button
-              className="text-white py-3 px-3 rounded-t-md font-medium text-sm bg-blue-700"
+              className="text-white py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm bg-blue-700 whitespace-nowrap flex-shrink-0"
             >
               พัสดุของฉัน
             </button>
             <button
-              className="text-blue-100 py-3 px-3 rounded-t-md font-medium text-sm hover:text-white"
+              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
               onClick={() => window.location.href = '/history'}
             >
               ประวัติ
@@ -136,18 +136,18 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
       {/* Main Content */}
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-white shadow rounded-lg p-6">
+        <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-white shadow rounded-lg p-4 sm:p-6">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
-                <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex-shrink-0 bg-yellow-100 rounded-md p-2 sm:p-3">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div className="ml-5 w-0 flex-1">
+              <div className="ml-3 sm:ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">รอรับ</dt>
-                  <dd className="text-lg font-medium text-gray-900">
+                  <dt className="text-xs sm:text-sm font-medium text-gray-500 truncate">รอรับ</dt>
+                  <dd className="text-lg sm:text-xl font-medium text-gray-900">
                     {parcels.filter(p => p.status === 'pending').length}
                   </dd>
                 </dl>
@@ -155,17 +155,17 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
             </div>
           </div>
 
-          <div className="bg-white shadow rounded-lg p-6">
+          <div className="bg-white shadow rounded-lg p-4 sm:p-6">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
-                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex-shrink-0 bg-green-100 rounded-md p-2 sm:p-3">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div className="ml-5 w-0 flex-1">
+              <div className="ml-3 sm:ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">รับแล้ว</dt>
-                  <dd className="text-lg font-medium text-gray-900">
+                  <dt className="text-xs sm:text-sm font-medium text-gray-500 truncate">รับแล้ว</dt>
+                  <dd className="text-lg sm:text-xl font-medium text-gray-900">
                     {parcels.filter(p => p.status === 'collected').length}
                   </dd>
                 </dl>
@@ -200,23 +200,23 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
                 <p className="mt-1 text-sm text-gray-500">ยังไม่มีพัสดุในระบบ</p>
               </div>
             ) : (
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+              <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
                 <table className="min-w-full divide-y divide-gray-300">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         วันที่รับ
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         เลขพัสดุ
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         ขนส่ง
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         สถานะ
                       </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         การจัดการ
                       </th>
                     </tr>
@@ -224,31 +224,36 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
                   <tbody className="bg-white divide-y divide-gray-200">
                     {parcels.map((parcel) => (
                       <tr key={parcel.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
+                          <span className="block sm:hidden text-xs text-gray-500 mb-1">วันที่:</span>
                           {formatDate(parcel.created_at)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {parcel.tracking_number}
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
+                          <span className="block sm:hidden text-xs text-gray-500 mb-1">เลขพัสดุ:</span>
+                          <span className="block truncate max-w-[100px] sm:max-w-none">{parcel.tracking_number}</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
+                          <span className="block sm:hidden text-xs text-gray-500 mb-1">ขนส่ง:</span>
                           {parcel.carrier_name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <span className="block sm:hidden text-xs text-gray-500 mb-1">สถานะ:</span>
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(parcel.status)}`}>
                             {getStatusText(parcel.status)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
+                          <span className="block sm:hidden text-xs text-gray-500 mb-1">การจัดการ:</span>
                           {parcel.status === 'pending' && (
                             <button
                               onClick={() => handleShowQRCode(parcel)}
-                              className="text-blue-600 hover:text-blue-900"
+                              className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
                             >
                               แสดง QR Code
                             </button>
                           )}
                           {parcel.status === 'collected' && (
-                            <span className="text-gray-400">รับแล้ว</span>
+                            <span className="text-gray-400 text-xs sm:text-sm">รับแล้ว</span>
                           )}
                         </td>
                       </tr>

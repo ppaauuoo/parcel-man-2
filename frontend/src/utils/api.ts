@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { LoginRequest, LoginResponse, User, Parcel, CreateParcelRequest } from '../types';
+import { LoginRequest, LoginResponse, User, Parcel, CreateParcelRequest, RegisterResidentRequest, RegisterResidentResponse } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -57,6 +57,10 @@ export const usersAPI = {
   },
   getProfile: async (): Promise<{ success: boolean; user: User }> => {
     const response = await api.get('/users/profile');
+    return response.data;
+  },
+  registerResident: async (data: RegisterResidentRequest): Promise<RegisterResidentResponse> => {
+    const response = await api.post('/users/register', data);
     return response.data;
   },
 };

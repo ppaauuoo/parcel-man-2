@@ -26,7 +26,8 @@ const app = new Elysia()
       .use(parcelRoutes)
       .use(userRoutes)
   )
-  .listen(3000);
+  .listen(3000, '0.0.0.0');
 
-console.log('🦊 Elysia is running at http://localhost:3000');
+console.log('🦊 Elysia is running at http://0.0.0.0:3000');
 console.log('📦 iCondo Backend API is ready!');
+console.log('🌐 Accessible from other devices on your network!');

@@ -143,6 +143,14 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
             >
               ประวัติ
             </button>
+            {user.role === 'staff' && (
+              <button
+                className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
+                onClick={() => window.location.href = '/users'}
+              >
+                จัดการผู้ใช้
+              </button>
+            )}
             {user.role === 'resident' && (
               <button
                 className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"

@@ -646,10 +646,13 @@ app.get('/api/parcels/:id/qrcode', authenticateToken, async (req: express.Reques
 // Start server
 const startServer = async () => {
   await initializeDatabase();
-  
-  app.listen(PORT, () => {
-    console.log('🚀 Express server is running at http://localhost:' + PORT);
+
+  const HOST = '0.0.0.0';
+
+  app.listen(PORT, HOST, () => {
+    console.log('🚀 Express server is running at http://' + HOST + ':' + PORT);
     console.log('📦 iCondo Backend API is ready!');
+    console.log('🌐 Accessible from other devices on your network!');
   });
 };
 

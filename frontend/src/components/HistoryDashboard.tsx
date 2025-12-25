@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Parcel } from '../types';
 import { parcelsAPI } from '../utils/api';
+import ImageModal from './ImageModal';
 
 interface StaffDeliveryOutProps {
   user: User;
@@ -20,6 +21,7 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
     offset: 0,
     total: 0,
   });
+  const [selectedImage, setSelectedImage] = useState<{url: string; title: string} | null>(null);
 
   useEffect(() => {
     loadParcels();
@@ -345,6 +347,9 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                             <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               สถานะ
                             </th>
+                            <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              รูปภาพ
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -387,6 +392,56 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(parcel.status)}`}>
                                   {getStatusText(parcel.status)}
                                 </span>
+                              </td>
+                              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                <span className="block sm:hidden text-xs text-gray-500 mb-1">รูปภาพ:</span>
+                                <div className="flex gap-2">
+                                  {parcel.photo_in_path && (
+                                    <button
+                                      onClick={() => setSelectedImage({
+                                        url: parcel.photo_in_path!,
+                                        title: `รูปรับพัสดุ - ${parcel.tracking_number}`
+                                      })}
+                                      className="relative group"
+                                      title="รูปถ่ายตอนรับพัสดุ"
+                                    >
+                                      <img
+                                        src={`http://localhost:3000${parcel.photo_in_path}`}
+                                        alt="Receive photo"
+                                        className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-blue-200 cursor-pointer hover:border-blue-400 transition-colors"
+                                      />
+                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                        </svg>
+                                      </div>
+                                    </button>
+                                  )}
+                                  {parcel.photo_out_path && (
+                                    <button
+                                      onClick={() => setSelectedImage({
+                                        url: parcel.photo_out_path!,
+                                        title: `รูปส่งมอบพัสดุ - ${parcel.tracking_number}`
+                                      })}
+                                      className="relative group"
+                                      title="รูปถ่ายตอนส่งมอบพัสดุ"
+                                    >
+                                      <img
+                                        src={`http://localhost:3000${parcel.photo_out_path}`}
+                                        alt="Delivery photo"
+                                        className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-green-200 cursor-pointer hover:border-green-400 transition-colors"
+                                      />
+                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                        </svg>
+                                      </div>
+                                    </button>
+                                  )}
+                                  {!parcel.photo_in_path && !parcel.photo_out_path && (
+                                    <span className="text-gray-400 text-xs">ไม่มีรูปภาพ</span>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -470,6 +525,14 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
           </div>
         </div>
       </div>
+
+      {/* Image Modal */}
+      <ImageModal
+        isOpen={!!selectedImage}
+        imageUrl={selectedImage?.url || null}
+        title={selectedImage?.title}
+        onClose={() => setSelectedImage(null)}
+      />
     </div>
   );
 };

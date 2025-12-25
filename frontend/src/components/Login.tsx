@@ -55,7 +55,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto sm:mx-auto sm:w-full">
         <div className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">iCondo</h1>
+          <img src="/logo.png" alt="iCondo" className="h-16 sm:h-20 mx-auto" />
+          <h1 className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-bold text-gray-900">iCondo</h1>
           <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">ระบบจัดการพัสดุคอนโด</p>
         </div>
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl font-extrabold text-gray-900">

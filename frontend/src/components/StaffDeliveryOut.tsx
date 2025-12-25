@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
 import { User, Parcel } from '../types';
 import { parcelsAPI } from '../utils/api';
@@ -17,6 +17,17 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [evidencePhoto, setEvidencePhoto] = useState<string | null>(null);
 
+  // Refs to avoid closure issues and track scanner state
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const isSubmittingRef = useRef(false);
+  const lastScannedIdRef = useRef<number | null>(null);
+  const lastScanTimeRef = useRef<number>(0);
+
+  // Sync isSubmittingRef with state to avoid closure issues
+  useEffect(() => {
+    isSubmittingRef.current = isSubmitting;
+  }, [isSubmitting]);
+
   useEffect(() => {
     if (isScanning) {
       startScanner();
@@ -30,6 +41,19 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
   }, [isScanning]);
 
   const startScanner = () => {
+    // Stop existing scanner first
+    if (scannerRef.current) {
+      console.log('🛑 Stopping existing scanner before starting new one');
+      try {
+        scannerRef.current.clear().catch((err) => {
+          console.log('Scanner clear error (expected if already cleared):', err);
+        });
+      } catch (e) {
+        console.log('Scanner already cleared');
+      }
+    }
+
+    console.log('▶️ Starting new QR scanner');
     const scanner = new Html5QrcodeScanner(
       "qr-reader",
       {
@@ -39,13 +63,35 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
       },
       false
     );
+    
+    // Store scanner reference
+    scannerRef.current = scanner;
 
     scanner.render(
       (decodedText) => {
+        // Use ref instead of state to avoid closure issues
+        if (isSubmittingRef.current) {
+          console.log('⏸️ Submission in progress, ignoring scan');
+          return;
+        }
+
+        // Prevent duplicate scans within 2 seconds (debouncing)
+        const now = Date.now();
+        const timeSinceLastScan = now - lastScanTimeRef.current;
+
         try {
           // Try parsing as JSON first (new format)
           const data = JSON.parse(decodedText);
           if (data.parcel_id && data.type === 'parcel_collection') {
+            // Check if same parcel scanned recently
+            if (data.parcel_id === lastScannedIdRef.current && timeSinceLastScan < 2000) {
+              console.log('🔄 Ignoring duplicate scan (within 2s cooldown)');
+              return;
+            }
+            
+            console.log(`📱 QR scanned: Parcel ID ${data.parcel_id}`);
+            lastScannedIdRef.current = data.parcel_id;
+            lastScanTimeRef.current = now;
             loadParcelDetails(data.parcel_id);
             setIsScanning(false);
           } else {
@@ -56,6 +102,15 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
           if (decodedText.startsWith('PC:') || decodedText.startsWith('I')) {
             const parcelId = parseInt(decodedText.replace(/^(PC:|I)/, ''));
             if (!isNaN(parcelId)) {
+              // Check duplicate for old format too
+              if (parcelId === lastScannedIdRef.current && timeSinceLastScan < 2000) {
+                console.log('🔄 Ignoring duplicate scan (within 2s cooldown)');
+                return;
+              }
+              
+              console.log(`📱 QR scanned (old format): Parcel ID ${parcelId}`);
+              lastScannedIdRef.current = parcelId;
+              lastScanTimeRef.current = now;
               loadParcelDetails(parcelId);
               setIsScanning(false);
               return;
@@ -87,13 +142,28 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
   };
 
   const stopScanner = () => {
+    console.log('⏹️ Stopping scanner');
     try {
+      if (scannerRef.current) {
+        scannerRef.current.clear()
+          .then(() => {
+            console.log('✅ Scanner stopped and cleared');
+            scannerRef.current = null;
+          })
+          .catch((error) => {
+            console.log('Scanner cleanup error (may be already cleared):', error);
+            scannerRef.current = null;
+          });
+      }
+      
+      // Also clear the DOM container as backup
       const scannerContainer = document.getElementById('qr-reader');
       if (scannerContainer) {
         scannerContainer.innerHTML = '';
       }
     } catch (error) {
       console.error('Error stopping scanner:', error);
+      scannerRef.current = null;
     }
   };
 
@@ -230,9 +300,15 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
       // Collect parcel with evidence photo path
       const response = await parcelsAPI.collectParcel(scannedParcel.id, user.id, evidencePhotoPath || undefined);
       if (response.success) {
+        console.log('✅ Parcel collected successfully, resetting state');
         setMessage({ type: 'success', text: 'ยืนยันการรับพัสดุเรียบร้อย' });
         setScannedParcel(null);
         setEvidencePhoto(null);
+        setIsScanning(false); // Stop scanner to prevent re-scanning same QR code
+        
+        // Reset scan tracking to allow scanning new parcels
+        lastScannedIdRef.current = null;
+        lastScanTimeRef.current = 0;
       } else {
         setMessage({ type: 'error', text: response.message || 'เกิดข้อผิดพลาด' });
       }

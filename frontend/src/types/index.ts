@@ -44,3 +44,16 @@ export interface CreateParcelRequest {
   carrier_name: string;
   photo_in_path?: string;
 }
+
+export interface RegisterResidentRequest {
+  username: string;
+  password: string;
+  room_number: string;
+  phone_number: string;
+}
+
+export interface RegisterResidentResponse {
+  success: boolean;
+  message: string;
+  user: User;
+}

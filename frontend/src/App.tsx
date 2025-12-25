@@ -5,6 +5,7 @@ import StaffReceiveParcel from './components/StaffReceiveParcel';
 import ResidentMyParcels from './components/ResidentMyParcels';
 import StaffDeliveryOut from './components/StaffDeliveryOut';
 import HistoryDashboard from './components/HistoryDashboard';
+import UserList from './components/UserList';
 import { User } from './types';
 
 const App: React.FC = () => {
@@ -76,6 +77,10 @@ const App: React.FC = () => {
           <Route
             path="/history"
             element={<HistoryDashboard user={user} onLogout={handleLogout} />}
+          />
+          <Route
+            path="/users"
+            element={<UserList user={user} onLogout={handleLogout} />}
           />
         </>
       )}

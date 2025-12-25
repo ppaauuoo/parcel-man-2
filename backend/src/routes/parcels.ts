@@ -115,6 +115,52 @@ export const parcelRoutes = new Elysia({ prefix: '/parcels' })
       return { error: 'Internal server error', message: 'เกิดข้อผิดพลาดในระบบ' };
     }
   })
+  .get('/:id', async ({ params, set, db, user }) => {
+    try {
+      const { id } = params;
+
+      // Fetch parcel with joined user data
+      const parcel = await db.get(`
+        SELECT p.*, u.room_number, u.username as resident_name,
+               u_in.username as staff_in_name, u_out.username as staff_out_name
+        FROM parcels p
+        JOIN users u ON p.resident_id = u.id
+        LEFT JOIN users u_in ON p.staff_in_id = u_in.id
+        LEFT JOIN users u_out ON p.staff_out_id = u_out.id
+        WHERE p.id = ?
+      `, id);
+
+      if (!parcel) {
+        set.status = 404;
+        return { 
+          error: 'Parcel not found', 
+          message: 'ไม่พบพัสดุนี้ กรุณาติดต่อผู้ดูแลระบบ' 
+        };
+      }
+
+      // Permission check: residents can only view their own parcels
+      if (user.role === 'resident' && user.id !== parcel.resident_id) {
+        set.status = 403;
+        return { 
+          error: 'Access denied', 
+          message: 'ไม่มีสิทธิ์ในการดูข้อมูลนี้' 
+        };
+      }
+
+      return {
+        success: true,
+        parcel
+      };
+
+    } catch (error) {
+      console.error('Get parcel error:', error);
+      set.status = 500;
+      return { 
+        error: 'Internal server error', 
+        message: 'เกิดข้อผิดพลาดในระบบ' 
+      };
+    }
+  })
   .put('/:id/collect', async ({ params, set, db, user }) => {
     try {
       const { id } = params;
@@ -215,13 +261,17 @@ export const parcelRoutes = new Elysia({ prefix: '/parcels' })
     try {
       const { id } = params;
 
-      // Generate QR code for parcel ID - simplified data to avoid "Data too long" error
-      const qrCodeData = `PC:${id}`;
+      // Generate QR code with JSON format for parcel collection
+      const qrCodeData = JSON.stringify({
+        parcel_id: parseInt(id),
+        type: 'parcel_collection'
+      });
 
       try {
         const qrCode = await QRCode.toDataURL(qrCodeData, {
-          errorCorrectionLevel: 'L', // Using lower error correction for more capacity
-          margin: 1 // Reduce margin to save space
+          errorCorrectionLevel: 'M', // Medium error correction for balance
+          margin: 2, // Standard margin
+          width: 256 // Fixed width for consistency
         });
 
         return {
@@ -231,17 +281,10 @@ export const parcelRoutes = new Elysia({ prefix: '/parcels' })
         };
       } catch (qrError) {
         console.error('QR Code generation failed:', qrError);
-        // Fallback to a shorter code if even the minimal one fails
-        const fallbackData = `I${id}`;
-        const qrCode = await QRCode.toDataURL(fallbackData, {
-          errorCorrectionLevel: 'L',
-          margin: 1
-        });
-
-        return {
-          success: true,
-          qrCode,
-          parcelId: id
+        set.status = 500;
+        return { 
+          error: 'QR code generation failed', 
+          message: 'ไม่สามารถสร้าง QR Code ได้' 
         };
       }
 

@@ -492,19 +492,67 @@ app.get('/api/parcels/history', authenticateToken, async (req: express.Request, 
   }
 });
 
+// Get single parcel by ID
+app.get('/api/parcels/:id', authenticateToken, async (req: express.Request, res: express.Response) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch parcel with joined user data
+    const parcel = await db.get(`
+      SELECT p.*, u.room_number, u.username as resident_name,
+             u_in.username as staff_in_name, u_out.username as staff_out_name
+      FROM parcels p
+      JOIN users u ON p.resident_id = u.id
+      LEFT JOIN users u_in ON p.staff_in_id = u_in.id
+      LEFT JOIN users u_out ON p.staff_out_id = u_out.id
+      WHERE p.id = ?
+    `, [id]);
+
+    if (!parcel) {
+      return res.status(404).json({ 
+        error: 'Parcel not found', 
+        message: 'ไม่พบพัสดุนี้ กรุณาติดต่อผู้ดูแลระบบ' 
+      });
+    }
+
+    // Permission check: residents can only view their own parcels
+    if (req.user.role === 'resident' && req.user.id !== parcel.resident_id) {
+      return res.status(403).json({ 
+        error: 'Access denied', 
+        message: 'ไม่มีสิทธิ์ในการดูข้อมูลพัสดุนี้' 
+      });
+    }
+
+    return res.json({
+      success: true,
+      parcel
+    });
+
+  } catch (error) {
+    console.error('Get parcel error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      message: 'เกิดข้อผิดพลาดในระบบ' 
+    });
+  }
+});
+
 // Generate QR code
 app.get('/api/parcels/:id/qrcode', authenticateToken, async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
 
-    // Generate QR code for parcel ID
+    // Generate QR code with JSON format for parcel collection
     const qrCodeData = JSON.stringify({
-      parcel_id: id,
-      type: 'parcel_collection',
-      timestamp: new Date().toISOString()
+      parcel_id: parseInt(id),
+      type: 'parcel_collection'
     });
 
-    const qrCode = await QRCode.toDataURL(qrCodeData);
+    const qrCode = await QRCode.toDataURL(qrCodeData, {
+      errorCorrectionLevel: 'M', // Medium error correction for balance
+      margin: 2, // Standard margin
+      width: 256 // Fixed width for consistency
+    });
 
     return res.json({
       success: true,

@@ -42,19 +42,45 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
     scanner.render(
       (decodedText) => {
         try {
+          // Try parsing as JSON first (new format)
           const data = JSON.parse(decodedText);
           if (data.parcel_id && data.type === 'parcel_collection') {
             loadParcelDetails(data.parcel_id);
             setIsScanning(false);
           } else {
-            setMessage({ type: 'error', text: 'QR Code ไม่ถูกต้อง' });
+            setMessage({ type: 'error', text: 'QR Code ไม่ถูกต้อง: ข้อมูลไม่ตรงกับรูปแบบที่กำหนด' });
           }
         } catch (error) {
-          setMessage({ type: 'error', text: 'QR Code ไม่ถูกต้อง' });
+          // Backward compatibility: Try old format (PC:id or I:id)
+          if (decodedText.startsWith('PC:') || decodedText.startsWith('I')) {
+            const parcelId = parseInt(decodedText.replace(/^(PC:|I)/, ''));
+            if (!isNaN(parcelId)) {
+              loadParcelDetails(parcelId);
+              setIsScanning(false);
+              return;
+            }
+          }
+          
+          setMessage({ type: 'error', text: 'QR Code ไม่ถูกต้อง: กรุณาสแกน QR Code สำหรับรับพัสดุ' });
         }
       },
       (error) => {
-        console.error(error);
+        // Filter out common scanning errors that are just the scanner looking for QR codes
+        // Only show errors that are actual problems
+        const errorMessage = error?.toString() || '';
+        
+        // NotFoundException is normal when scanner doesn't see a QR code yet
+        if (!errorMessage.includes('NotFoundException')) {
+          console.error('QR Scanner error:', error);
+          
+          // Only set message for critical errors
+          if (errorMessage.includes('NotAllowedError') || errorMessage.includes('NotFoundError')) {
+            setMessage({ 
+              type: 'error', 
+              text: 'ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง' 
+            });
+          }
+        }
       }
     );
   };
@@ -72,22 +98,47 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
 
   const loadParcelDetails = async (parcelId: number) => {
     setLoading(true);
+    setMessage(null);
     try {
-      // For now, we'll simulate loading parcel details
-      // In a real implementation, we'd have an API to get parcel by ID
-      const mockParcel: Parcel = {
-        id: parcelId,
-        tracking_number: 'TH123456789',
-        resident_id: 1,
-        carrier_name: 'Kerry Express',
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        resident_name: 'John Doe',
-        room_number: '101',
-      };
-      setScannedParcel(mockParcel);
-    } catch (error) {
-      setMessage({ type: 'error', text: 'เกิดข้อผิดพลาดในการโหลดข้อมูลพัสดุ' });
+      const response = await parcelsAPI.getParcelById(parcelId);
+      
+      if (response.success && response.parcel) {
+        // Check if parcel is already collected
+        if (response.parcel.status === 'collected') {
+          setMessage({ 
+            type: 'error', 
+            text: `พัสดุนี้ถูกเบิกไปแล้ว (เบิกเมื่อ ${new Date(response.parcel.collected_at || '').toLocaleDateString('th-TH')})` 
+          });
+          setScannedParcel(null);
+        } else {
+          setScannedParcel(response.parcel);
+        }
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: response.message || 'ไม่พบข้อมูลพัสดุ กรุณาติดต่อผู้ดูแลระบบ' 
+        });
+      }
+    } catch (error: any) {
+      console.error('Load parcel error:', error);
+      
+      // Handle different error types
+      if (error.response?.status === 404) {
+        setMessage({ 
+          type: 'error', 
+          text: 'ไม่พบพัสดุนี้ กรุณาติดต่อผู้ดูแลระบบ' 
+        });
+      } else if (error.response?.status === 403) {
+        setMessage({ 
+          type: 'error', 
+          text: 'ไม่มีสิทธิ์ในการดูข้อมูลพัสดุนี้' 
+        });
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: error.response?.data?.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูลพัสดุ กรุณาติดต่อผู้ดูแลระบบ' 
+        });
+      }
     } finally {
       setLoading(false);
     }

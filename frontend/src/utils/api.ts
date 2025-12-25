@@ -104,6 +104,10 @@ export const parcelsAPI = {
     const response = await api.get(`/parcels/${parcelId}/qrcode`);
     return response.data;
   },
+  getParcelById: async (parcelId: number): Promise<{ success: boolean; parcel: Parcel; message?: string }> => {
+    const response = await api.get(`/parcels/${parcelId}`);
+    return response.data;
+  },
 };
 
 export default api;

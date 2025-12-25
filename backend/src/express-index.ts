@@ -253,30 +253,103 @@ app.post('/api/upload/base64-photo', authenticateToken, requireRole('staff'), as
   try {
     const { image_data, parcel_id, photo_type } = req.body;
 
+    console.log(`📸 Upload request - Parcel ID: ${parcel_id}, Photo type: ${photo_type}`);
+    console.log(`📏 Image data size: ${image_data?.length || 0} characters`);
+
     if (!image_data || !parcel_id || !photo_type) {
+      console.error('❌ Missing required fields');
       return res.status(400).json({
         error: 'Missing required fields',
         message: 'กรุณาระบุข้อมูลให้ครบถ้วน'
       });
     }
 
-    // Remove data URL prefix
-    const base64Data = image_data.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64Data, 'base64');
+    // Validate image data format
+    if (!image_data.startsWith('data:image/')) {
+      console.error('❌ Invalid image format - missing data:image/ prefix');
+      return res.status(400).json({
+        error: 'Invalid image format',
+        message: 'รูปภาพไม่ถูกต้อง กรุณาถ่ายรูปใหม่'
+      });
+    }
+
+    console.log(`🔖 Image format: ${image_data.substring(0, 50)}...`);
+
+    // Remove data URL prefix with better regex
+    const base64Data = image_data.replace(/^data:image\/[a-zA-Z]+;base64,/, '');
+
+    if (!base64Data || base64Data === image_data) {
+      console.error('❌ Failed to strip base64 prefix');
+      return res.status(400).json({
+        error: 'Invalid base64 data',
+        message: 'ข้อมูลรูปภาพไม่ถูกต้อง'
+      });
+    }
+
+    console.log(`✂️ Base64 data after strip: ${base64Data.substring(0, 50)}...`);
+
+    // Convert to buffer
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(base64Data, 'base64');
+      console.log(`📦 Buffer created, size: ${buffer.length} bytes (${(buffer.length / 1024).toFixed(2)} KB)`);
+    } catch (bufferError) {
+      console.error('❌ Buffer conversion failed:', bufferError);
+      return res.status(400).json({
+        error: 'Invalid base64 data',
+        message: 'ไม่สามารถแปลงข้อมูลรูปภาพได้'
+      });
+    }
 
     // Generate unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const filename = `${photo_type}-${uniqueSuffix}.jpg`;
-    const parcelDir = path.join(parcelsUploadDir, parcel_id);
+    const parcelDir = path.join(parcelsUploadDir, String(parcel_id));
 
-    if (!fs.existsSync(parcelDir)) {
-      fs.mkdirSync(parcelDir, { recursive: true });
+    console.log(`📁 Target directory: ${parcelDir}`);
+
+    // Create directory if it doesn't exist
+    try {
+      if (!fs.existsSync(parcelDir)) {
+        fs.mkdirSync(parcelDir, { recursive: true });
+        console.log(`✅ Directory created: ${parcelDir}`);
+      }
+
+      // Verify directory exists
+      if (!fs.existsSync(parcelDir)) {
+        throw new Error(`Failed to create directory: ${parcelDir}`);
+      }
+    } catch (dirError) {
+      console.error('❌ Directory creation failed:', dirError);
+      return res.status(500).json({
+        error: 'Directory creation failed',
+        message: 'ไม่สามารถสร้างโฟลเดอร์ได้'
+      });
     }
 
+    // Write file
     const filePath = path.join(parcelDir, filename);
-    fs.writeFileSync(filePath, buffer);
+    try {
+      fs.writeFileSync(filePath, buffer);
+      console.log(`💾 File write initiated: ${filePath}`);
+
+      // Verify file was written
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`Failed to write file: ${filePath}`);
+      }
+
+      const stats = fs.statSync(filePath);
+      console.log(`✅ Photo saved successfully: ${stats.size} bytes`);
+    } catch (writeError) {
+      console.error('❌ File write failed:', writeError);
+      return res.status(500).json({
+        error: 'File write failed',
+        message: 'ไม่สามารถบันทึกไฟล์ได้'
+      });
+    }
 
     const photoPath = `/uploads/parcels/${parcel_id}/${filename}`;
+    console.log(`🎉 Upload complete: ${photoPath}`);
 
     return res.json({
       success: true,
@@ -285,8 +358,12 @@ app.post('/api/upload/base64-photo', authenticateToken, requireRole('staff'), as
     });
 
   } catch (error) {
-    console.error('Upload base64 photo error:', error);
-    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในการอัพโหลด' });
+    console.error('❌ Upload base64 photo error:', error);
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      message: 'เกิดข้อผิดพลาดในการอัพโหลด' 
+    });
   }
 });
 

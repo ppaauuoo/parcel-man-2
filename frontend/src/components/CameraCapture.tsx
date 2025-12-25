@@ -80,7 +80,13 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0);
         
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        const imageData = canvas.toDataURL('image/jpeg', 0.6);
+        
+        // Log image size for debugging
+        const sizeInBytes = imageData.length * 0.75; // Approximate decoded size
+        const sizeInMB = sizeInBytes / (1024 * 1024);
+        console.log(`📸 Captured image size: ${sizeInMB.toFixed(2)} MB`);
+        
         setPhoto(imageData);
         onCapture(imageData);
         stopCamera();
@@ -93,10 +99,29 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const imageData = reader.result as string;
-        setPhoto(imageData);
-        onCapture(imageData);
-        setIsUsingFile(true);
+        const img = new Image();
+        img.onload = () => {
+          // Create canvas to compress image
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const imageData = canvas.toDataURL('image/jpeg', 0.6);
+            
+            // Log image size for debugging
+            const sizeInBytes = imageData.length * 0.75;
+            const sizeInMB = sizeInBytes / (1024 * 1024);
+            console.log(`📁 File upload image size: ${sizeInMB.toFixed(2)} MB`);
+            
+            setPhoto(imageData);
+            onCapture(imageData);
+            setIsUsingFile(true);
+          }
+        };
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
     }

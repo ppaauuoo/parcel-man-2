@@ -12,7 +12,8 @@ interface StaffDeliveryOutProps {
 const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedParcel, setScannedParcel] = useState<Parcel | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isLoadingParcel, setIsLoadingParcel] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [evidencePhoto, setEvidencePhoto] = useState<string | null>(null);
 
@@ -97,7 +98,7 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
   };
 
   const loadParcelDetails = async (parcelId: number) => {
-    setLoading(true);
+    setIsLoadingParcel(true);
     setMessage(null);
     try {
       const response = await parcelsAPI.getParcelById(parcelId);
@@ -140,7 +141,7 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
         });
       }
     } finally {
-      setLoading(false);
+      setIsLoadingParcel(false);
     }
   };
 
@@ -149,7 +150,7 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
   const handleConfirmPickup = async () => {
     if (!scannedParcel) return;
 
-    setLoading(true);
+    setIsSubmitting(true);
     setMessage(null);
 
     try {
@@ -158,6 +159,9 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
       // Upload evidence photo if exists
       if (evidencePhoto) {
         try {
+          console.log('📤 Uploading evidence photo for parcel:', scannedParcel.id);
+          console.log('📏 Image data length:', evidencePhoto.length);
+          
           const response = await fetch('/api/upload/base64-photo', {
             method: 'POST',
             headers: {
@@ -171,19 +175,54 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
             })
           });
           
+          console.log('📥 Upload response status:', response.status);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Upload failed:', response.status, errorText);
+            
+            // Try to parse as JSON, fallback to text
+            let errorMessage = 'Failed to upload evidence photo';
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMessage = errorJson.message || errorMessage;
+            } catch (e) {
+              errorMessage = errorText || errorMessage;
+            }
+            
+            throw new Error(errorMessage);
+          }
+          
           const result = await response.json();
+          
           if (result.success) {
             evidencePhotoPath = result.photo_path;
+            console.log('✅ Evidence photo uploaded:', evidencePhotoPath);
           } else {
             throw new Error(result.message || 'Failed to upload evidence photo');
           }
-        } catch (photoError) {
+        } catch (photoError: any) {
           console.error('Evidence photo upload error:', photoError);
+          
+          // Show more specific error message based on error type
+          let errorMessage = 'เกิดข้อผิดพลาดในการอัพโหลดรูปภาพหลักฐาน';
+          
+          if (photoError.message?.includes('413') || photoError.message?.includes('too large')) {
+            errorMessage = 'รูปภาพใหญ่เกินไป กรุณาถ่ายใหม่';
+          } else if (photoError.message?.includes('400') || photoError.message?.includes('Invalid')) {
+            errorMessage = 'รูปภาพไม่ถูกต้อง กรุณาถ่ายใหม่';
+          } else if (photoError.message?.includes('timeout') || photoError.message?.includes('network')) {
+            errorMessage = 'การเชื่อมต่อขัดข้อง กรุณาลองใหม่';
+          } else if (photoError.message) {
+            // Use backend's Thai error message if available
+            errorMessage = photoError.message;
+          }
+          
           setMessage({ 
             type: 'error', 
-            text: 'เกิดข้อผิดพลาดในการอัพโหลดรูปภาพหลักฐาน' 
+            text: errorMessage
           });
-          setLoading(false);
+          setIsSubmitting(false);
           return;
         }
       }
@@ -203,7 +242,7 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
         text: error.response?.data?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ' 
       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -363,14 +402,14 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                 <button
                   type="button"
                   onClick={handleConfirmPickup}
-                  disabled={loading || !evidencePhoto}
+                  disabled={isLoadingParcel || isSubmitting || !evidencePhoto}
                   className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                    loading || !evidencePhoto
+                    isLoadingParcel || isSubmitting || !evidencePhoto
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
                   }`}
                 >
-                  {loading ? (
+                  {isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       กำลังบันทึก...

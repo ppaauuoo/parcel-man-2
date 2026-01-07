@@ -647,7 +647,7 @@ app.get('/api/parcels/:id/qrcode', authenticateToken, async (req: express.Reques
 const startServer = async () => {
   await initializeDatabase();
 
-  const HOST = '0.0.0.0';
+  const HOST = '192.168.1.100';
 
   app.listen(PORT, HOST, () => {
     console.log('🚀 Express server is running at http://' + HOST + ':' + PORT);

@@ -5,13 +5,17 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    allowedHosts: [
+      'work.palsocool.win',
+    ],
     host: '0.0.0.0',
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'https://backend.palsocool.win',
         changeOrigin: true,
-        secure: false,
+        secure: true,
+        rewrite: (path) => path
       }
     }
   }

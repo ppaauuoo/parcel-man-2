@@ -9,6 +9,7 @@ import fs from 'fs';
 import { open, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { setupDatabaseSchema } from './db/schema';
+import { hashPassword } from './utils/auth';
 
 // Initialize Express app
 const app = express();
@@ -170,6 +171,71 @@ app.post('/api/auth/login', async (req: express.Request, res: express.Response) 
 
   } catch (error) {
     console.error('Login error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในระบบ' });
+  }
+});
+
+// Register resident (staff only)
+app.post('/api/users/register', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
+  try {
+    const { username, password, room_number, phone_number } = req.body;
+
+    // Validate required fields
+    if (!username || !password || !room_number || !phone_number) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'กรุณากรอกข้อมูลให้ครบถ้วน'
+      });
+    }
+
+    // Check if username already exists
+    const existingUser = await db.get(
+      'SELECT id FROM users WHERE username = ?',
+      username
+    );
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: 'Username already exists',
+        message: 'ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว'
+      });
+    }
+
+    // Check if room number already exists for a resident
+    const existingRoom = await db.get(
+      'SELECT id FROM users WHERE role = "resident" AND room_number = ?',
+      room_number
+    );
+
+    if (existingRoom) {
+      return res.status(400).json({
+        error: 'Room already occupied',
+        message: 'ห้องนี้มีผู้อาศัยอยู่แล้ว'
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
+    // Insert new resident
+    const result = await db.run(
+      'INSERT INTO users (username, password, role, room_number, phone_number) VALUES (?, ?, ?, ?, ?)',
+      username, hashedPassword, 'resident', room_number, phone_number
+    );
+
+    const newUser = await db.get(
+      'SELECT id, username, room_number, phone_number FROM users WHERE id = ?',
+      result.lastID
+    );
+
+    return res.json({
+      success: true,
+      message: 'ลงทะเบียนผู้อาศัยเรียบร้อย',
+      user: newUser
+    });
+
+  } catch (error) {
+    console.error('Register resident error:', error);
     return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในระบบ' });
   }
 });

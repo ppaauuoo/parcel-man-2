@@ -10,8 +10,7 @@ interface ImageModalProps {
 const ImageModal: React.FC<ImageModalProps> = ({ isOpen, imageUrl, onClose, title }) => {
   if (!isOpen || !imageUrl) return null;
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  const fullImageUrl = imageUrl.startsWith('http') ? imageUrl : `${API_URL}${imageUrl}`;
+  const fullImageUrl = imageUrl;
 
   return (
     <div 

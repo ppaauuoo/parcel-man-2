@@ -16,6 +16,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path
+      },
+      '/uploads': {
+        target: 'https://backend.palsocool.win',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path
       }
     }
   }

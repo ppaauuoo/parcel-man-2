@@ -259,7 +259,7 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
                               title="รูปถ่ายหลักฐานการรับพัสดุ"
                             >
                               <img
-                                src={`http://localhost:3000${parcel.photo_out_path}`}
+                                src={parcel.photo_out_path!}
                                 alt="Delivery evidence"
                                 className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-green-200 cursor-pointer hover:border-green-400 transition-colors"
                               />

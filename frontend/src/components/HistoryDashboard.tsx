@@ -414,7 +414,7 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                                       title="รูปถ่ายตอนรับพัสดุ"
                                     >
                                       <img
-                                        src={`http://localhost:3000${parcel.photo_in_path}`}
+                                        src={parcel.photo_in_path!}
                                         alt="Receive photo"
                                         className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-blue-200 cursor-pointer hover:border-blue-400 transition-colors"
                                       />
@@ -435,7 +435,7 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                                       title="รูปถ่ายตอนส่งมอบพัสดุ"
                                     >
                                       <img
-                                        src={`http://localhost:3000${parcel.photo_out_path}`}
+                                        src={parcel.photo_out_path!}
                                         alt="Delivery photo"
                                         className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-green-200 cursor-pointer hover:border-green-400 transition-colors"
                                       />

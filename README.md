@@ -39,13 +39,14 @@ A modern parcel management system for condominiums, enabling staff to receive pa
 - **html5-qrcode** - QR code scanning
 
 ### Backend
-- **Elysia** - Fast web framework
+- **Express** - Web framework
 - **TypeScript** - Type safety
 - **SQLite** - Database
 - **JWT** - Authentication
 - **Multer** - File uploads
 - **bcrypt** - Password hashing
 - **qrcode** - QR code generation
+- **CORS** - Cross-origin resource sharing
 
 ## Prerequisites
 
@@ -147,6 +148,7 @@ icondo/
 │   │   │   ├── AddResidentModal.tsx
 │   │   │   ├── CameraCapture.tsx
 │   │   │   ├── HistoryDashboard.tsx
+│   │   │   ├── ImageModal.tsx
 │   │   │   ├── Login.tsx
 │   │   │   ├── QRCodeModal.tsx
 │   │   │   ├── ResidentMyParcels.tsx
@@ -255,6 +257,15 @@ VITE_API_URL=http://localhost:3000/api
 - Ensure both frontend and backend are running
 - Check that the backend is on port 3000 and frontend on port 5173
 - Verify proxy configuration in `frontend/vite.config.ts`
+
+## Development Guidelines
+
+For detailed coding conventions and development practices, please refer to **[AGENTS.md](./AGENTS.md)** which includes:
+- Code style guidelines (imports, components, naming conventions)
+- TypeScript patterns and React hooks usage
+- Error handling and logging standards
+- Security best practices
+- Testing and build commands
 
 ## Contributing
 

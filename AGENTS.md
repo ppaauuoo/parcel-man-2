@@ -7,7 +7,7 @@ iCondo - Parcel management system for condominiums. Staff receives parcels, resi
 
 **Tech Stack:**
 - Frontend: React 18 + TypeScript + Vite + Tailwind CSS + React Router + Axios
-- Backend: Elysia + TypeScript + SQLite
+- Backend: Express + TypeScript + SQLite
 - Auth: JWT
 - QR: qrcode.react + html5-qrcode
 
@@ -56,14 +56,14 @@ import CameraCapture from './CameraCapture';
 ```
 
 **Backend:**
-1. Framework/library imports (Elysia, etc.)
-2. Local imports (utils, routes, etc.)
+1. Framework/library imports (Express, etc.)
+2. Local imports (utils, database, etc.)
 3. Type imports use `type` keyword when possible
 
 ```typescript
-import { Elysia } from 'elysia';
-import { comparePassword, validateLogin } from '../utils/auth';
-import type { User } from '../utils/auth';
+import express from 'express';
+import { hashPassword } from './utils/auth';
+import { setupDatabaseSchema } from './db/schema';
 ```
 
 ### Component Structure
@@ -197,23 +197,27 @@ console.error('Login error:', error);
 ```
 
 ### Backend API Structure
-- Use Elysia framework
-- Group routes by prefix (e.g., `/parcels`, `/users`, `/auth`)
-- Apply middleware for authentication: `authMiddleware('staff')`
-- Decorate with database: `.decorate('db', getDatabase())`
+- Use Express framework
+- All routes defined in `src/index.ts` with `/api` prefix
+- Apply middleware for authentication: `authenticateToken` and `requireRole('staff')`
+- Database connection initialized on startup
 - Return structured responses: `{ success: boolean, message: string, data?: any }`
 
 ```typescript
-export const parcelRoutes = new Elysia({ prefix: '/parcels' })
-  .use(authMiddleware('staff'))
-  .post('/', async ({ body, set, db, user }) => {
-    try {
-      // Route logic
-      return { success: true, message: 'บันทึกรับพัสดุเรียบร้อย', parcel };
-    } catch (error) {
-      // Error handling
-    }
-  });
+app.post('/api/parcels', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
+  try {
+    const { tracking_number, resident_id, carrier_name, room_number, photo_in_path } = req.body;
+    // Route logic
+    return res.json({
+      success: true,
+      message: 'บันทึกรับพัสดุเรียบร้อย',
+      parcel
+    });
+  } catch (error) {
+    console.error('Create parcel error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในระบบ' });
+  }
+});
 ```
 
 ### File Organization
@@ -224,10 +228,9 @@ export const parcelRoutes = new Elysia({ prefix: '/parcels' })
 - `src/App.tsx` - Main app with routing
 
 **Backend:**
-- `src/routes/` - API route handlers
 - `src/db/` - Database schema and connection
 - `src/utils/` - Utility functions (auth helpers, etc.)
-- `src/index.ts` - Server entry point
+- `src/index.ts` - Server entry point with all routes
 
 ### Security Best Practices
 - Never commit secrets (use environment variables)

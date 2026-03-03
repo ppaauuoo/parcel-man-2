@@ -13,7 +13,7 @@ import { hashPassword } from './utils/auth';
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'icondo-secret-key-change-in-production';
 
 // Ensure uploads directory exists
@@ -713,7 +713,7 @@ app.get('/api/parcels/:id/qrcode', authenticateToken, async (req: express.Reques
 const startServer = async () => {
   await initializeDatabase();
 
-  const HOST = '192.168.1.100';
+  const HOST = '0.0.0.0';
 
   app.listen(PORT, HOST, () => {
     console.log('🚀 Express server is running at http://' + HOST + ':' + PORT);

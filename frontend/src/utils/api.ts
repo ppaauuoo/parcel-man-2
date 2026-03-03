@@ -112,6 +112,13 @@ export const parcelsAPI = {
     const response = await api.get(`/parcels/${parcelId}`);
     return response.data;
   },
+  updateParcelSendout: async (parcelId: number, sendoutAt: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.put('/parcels/update-parcel', {
+      parcel_id: parcelId,
+      sendout_at: sendoutAt
+    });
+    return response.data;
+  },
 };
 
 export default api;

@@ -461,6 +461,20 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                     <p className="text-sm font-medium text-gray-500">ผู้รับ</p>
                     <p className="text-sm text-gray-900">{scannedParcel.resident_name}</p>
                   </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">วันที่ต้องการรับ</p>
+                    <p className={`text-sm ${scannedParcel.sendout_at ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                      {scannedParcel.sendout_at 
+                        ? new Date(scannedParcel.sendout_at).toLocaleString('th-TH', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : 'ไม่ระบุ'}
+                    </p>
+                  </div>
                 </div>
               </div>
 

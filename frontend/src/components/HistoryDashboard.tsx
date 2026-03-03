@@ -122,43 +122,29 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
       <div className="bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-2 sm:space-x-6 lg:space-x-8 overflow-x-auto">
-            {user.role === 'staff' && (
-              <>
-                <button
-                  className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-                  onClick={() => window.location.href = '/receive-parcel'}
-                >
-                  รับพัสดุ
-                </button>
-                <button
-                  className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-                  onClick={() => window.location.href = '/delivery-out'}
-                >
-                  ส่งมอบพัสดุ
-                </button>
-              </>
-            )}
+            <button
+              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
+              onClick={() => window.location.href = '/receive-parcel'}
+            >
+              รับพัสดุ
+            </button>
+            <button
+              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
+              onClick={() => window.location.href = '/delivery-out'}
+            >
+              ส่งมอบพัสดุ
+            </button>
             <button
               className="text-white py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm bg-blue-700 whitespace-nowrap flex-shrink-0"
             >
               ประวัติ
             </button>
-            {user.role === 'staff' && (
-              <button
-                className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-                onClick={() => window.location.href = '/users'}
-              >
-                จัดการผู้ใช้
-              </button>
-            )}
-            {user.role === 'resident' && (
-              <button
-                className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-                onClick={() => window.location.href = '/my-parcels'}
-              >
-                พัสดุของฉัน
-              </button>
-            )}
+            <button
+              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
+              onClick={() => window.location.href = '/users'}
+            >
+              จัดการผู้ใช้
+            </button>
           </div>
         </div>
       </div>
@@ -168,23 +154,21 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
         {/* Filters */}
         <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">ค้นหาพัสดุ</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {user.role === 'staff' && (
-              <div>
-                <label htmlFor="room_number" className="block text-sm font-medium text-gray-700">
-                  หมายเลขห้อง
-                </label>
-                <input
-                  id="room_number"
-                  name="room_number"
-                  type="text"
-                  value={filters.room_number}
-                  onChange={handleFilterChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="เช่น 101"
-                />
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label htmlFor="room_number" className="block text-sm font-medium text-gray-700">
+                หมายเลขห้อง
+              </label>
+              <input
+                id="room_number"
+                name="room_number"
+                type="text"
+                value={filters.room_number}
+                onChange={handleFilterChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="เช่น 101"
+              />
+            </div>
             <div>
               <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">
                 วันที่เริ่มต้น
@@ -353,6 +337,9 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                               วันที่ส่งมอบ
                             </th>
                             <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              วันที่ต้องการรับ
+                            </th>
+                            <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               สถานะ
                             </th>
                             <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -394,6 +381,14 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                               <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
                                 <span className="block sm:hidden text-xs text-gray-500 mb-1">ส่งเมื่อ:</span>
                                 {parcel.collected_at ? formatDate(parcel.collected_at) : '-'}
+                              </td>
+                              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
+                                <span className="block sm:hidden text-xs text-gray-500 mb-1">ต้องการรับ:</span>
+                                {parcel.sendout_at ? (
+                                  <span className="text-green-600">{formatDate(parcel.sendout_at)}</span>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
                               </td>
                               <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                                 <span className="block sm:hidden text-xs text-gray-500 mb-1">สถานะ:</span>

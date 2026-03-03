@@ -22,6 +22,12 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
     } | null;
   }>({ isOpen: false, parcel: null });
   const [selectedImage, setSelectedImage] = useState<{url: string; title: string} | null>(null);
+  const [sendoutModal, setSendoutModal] = useState<{
+    isOpen: boolean;
+    parcel: Parcel | null;
+  }>({ isOpen: false, parcel: null });
+  const [sendoutDate, setSendoutDate] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadParcels();
@@ -57,6 +63,35 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
     } catch (error) {
       console.error('Error generating QR code:', error);
       alert('เกิดข้อผิดพลาดในการสร้าง QR Code');
+    }
+  };
+
+  const handleOpenSendoutModal = (parcel: Parcel) => {
+    setSendoutModal({ isOpen: true, parcel });
+    setSendoutDate(parcel.sendout_at || '');
+  };
+
+  const handleCloseSendoutModal = () => {
+    setSendoutModal({ isOpen: false, parcel: null });
+    setSendoutDate('');
+  };
+
+  const handleUpdateSendout = async () => {
+    if (!sendoutModal.parcel) return;
+    
+    try {
+      setIsSubmitting(true);
+      const response = await parcelsAPI.updateParcelSendout(sendoutModal.parcel.id, sendoutDate);
+      if (response.success) {
+        alert('บันทึกวันที่ต้องการรับพัสดุเรียบร้อย');
+        handleCloseSendoutModal();
+        loadParcels();
+      }
+    } catch (error: any) {
+      console.error('Error updating pickup date:', error);
+      alert(error.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึก');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -124,12 +159,6 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
               className="text-white py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm bg-blue-700 whitespace-nowrap flex-shrink-0"
             >
               พัสดุของฉัน
-            </button>
-            <button
-              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-              onClick={() => window.location.href = '/history'}
-            >
-              ประวัติ
             </button>
           </div>
         </div>
@@ -204,94 +233,115 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
             ) : (
               <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
                 <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        วันที่รับ
-                      </th>
-                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        เลขพัสดุ
-                      </th>
-                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ขนส่ง
-                      </th>
-                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        สถานะ
-                      </th>
-                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        รูปภาพ
-                      </th>
-                      <th scope="col" className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        การจัดการ
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {parcels.map((parcel) => (
-                      <tr key={parcel.id}>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
-                          <span className="block sm:hidden text-xs text-gray-500 mb-1">วันที่:</span>
-                          {formatDate(parcel.created_at)}
-                        </td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                          <span className="block sm:hidden text-xs text-gray-500 mb-1">เลขพัสดุ:</span>
-                          <span className="block truncate max-w-[100px] sm:max-w-none">{parcel.tracking_number}</span>
-                        </td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
-                          <span className="block sm:hidden text-xs text-gray-500 mb-1">ขนส่ง:</span>
-                          {parcel.carrier_name}
-                        </td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                          <span className="block sm:hidden text-xs text-gray-500 mb-1">สถานะ:</span>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(parcel.status)}`}>
-                            {getStatusText(parcel.status)}
-                          </span>
-                        </td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                          <span className="block sm:hidden text-xs text-gray-500 mb-1">รูปภาพ:</span>
-                          {parcel.photo_out_path ? (
-                            <button
-                              onClick={() => setSelectedImage({
-                                url: parcel.photo_out_path!,
-                                title: `หลักฐานการรับพัสดุ - ${parcel.tracking_number}`
-                              })}
-                              className="relative group"
-                              title="รูปถ่ายหลักฐานการรับพัสดุ"
-                            >
-                              <img
-                                src={parcel.photo_out_path!}
-                                alt="Delivery evidence"
-                                className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-green-200 cursor-pointer hover:border-green-400 transition-colors"
-                              />
-                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
-                                <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                </svg>
-                              </div>
-                            </button>
-                          ) : (
-                            <span className="text-gray-400 text-xs">
-                              {parcel.status === 'pending' ? 'รอรับพัสดุ' : 'ไม่มีรูปภาพ'}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
-                          <span className="block sm:hidden text-xs text-gray-500 mb-1">การจัดการ:</span>
-                          {parcel.status === 'pending' && (
-                            <button
-                              onClick={() => handleShowQRCode(parcel)}
-                              className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
-                            >
-                              แสดง QR Code
-                            </button>
-                          )}
-                          {parcel.status === 'collected' && (
-                            <span className="text-gray-400 text-xs sm:text-sm">รับแล้ว</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                   <thead className="bg-gray-50">
+                     <tr>
+                       <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         วันที่รับ
+                       </th>
+                       <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         เลขพัสดุ
+                       </th>
+                       <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         ขนส่ง
+                       </th>
+                       <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         สถานะ
+                       </th>
+                       <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         วันที่ต้องการรับ
+                       </th>
+                       <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         รูปภาพ
+                       </th>
+                       <th scope="col" className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         การจัดการ
+                       </th>
+                     </tr>
+                   </thead>
+                   <tbody className="bg-white divide-y divide-gray-200">
+                     {parcels.map((parcel) => (
+                       <tr key={parcel.id}>
+                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
+                           <span className="block sm:hidden text-xs text-gray-500 mb-1">วันที่:</span>
+                           {formatDate(parcel.created_at)}
+                         </td>
+                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
+                           <span className="block sm:hidden text-xs text-gray-500 mb-1">เลขพัสดุ:</span>
+                           <span className="block truncate max-w-[100px] sm:max-w-none">{parcel.tracking_number}</span>
+                         </td>
+                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
+                           <span className="block sm:hidden text-xs text-gray-500 mb-1">ขนส่ง:</span>
+                           {parcel.carrier_name}
+                         </td>
+                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                           <span className="block sm:hidden text-xs text-gray-500 mb-1">สถานะ:</span>
+                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(parcel.status)}`}>
+                             {getStatusText(parcel.status)}
+                           </span>
+                         </td>
+                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
+                           <span className="block sm:hidden text-xs text-gray-500 mb-1">วันที่ต้องการรับ:</span>
+                           {parcel.sendout_at ? (
+                             <span className="text-green-600">{formatDate(parcel.sendout_at)}</span>
+                           ) : (
+                             <span className="text-gray-400">-</span>
+                           )}
+                         </td>
+                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                           <span className="block sm:hidden text-xs text-gray-500 mb-1">รูปภาพ:</span>
+                           {parcel.photo_out_path ? (
+                             <button
+                               onClick={() => setSelectedImage({
+                                 url: parcel.photo_out_path!,
+                                 title: `หลักฐานการรับพัสดุ - ${parcel.tracking_number}`
+                               })}
+                               className="relative group"
+                               title="รูปถ่ายหลักฐานการรับพัสดุ"
+                             >
+                               <img
+                                 src={parcel.photo_out_path!}
+                                 alt="Delivery evidence"
+                                 className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-green-200 cursor-pointer hover:border-green-400 transition-colors"
+                               />
+                               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
+                                 <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                 </svg>
+                               </div>
+                             </button>
+                           ) : (
+                             <span className="text-gray-400 text-xs">
+                               {parcel.status === 'pending' ? 'รอรับพัสดุ' : 'ไม่มีรูปภาพ'}
+                             </span>
+                           )}
+                         </td>
+                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
+                           <span className="block sm:hidden text-xs text-gray-500 mb-1">การจัดการ:</span>
+                           <div className="flex flex-col sm:flex-row justify-end gap-2">
+                             {parcel.status === 'pending' && (
+                               <>
+                                 <button
+                                   onClick={() => handleOpenSendoutModal(parcel)}
+                                   className="text-green-600 hover:text-green-900 text-xs sm:text-sm"
+                                 >
+                                   {parcel.sendout_at ? 'แก้ไขวันที่ต้องการรับ' : 'ระบุวันที่ต้องการรับ'}
+                                 </button>
+                                 <button
+                                   onClick={() => handleShowQRCode(parcel)}
+                                   className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
+                                 >
+                                   แสดง QR Code
+                                 </button>
+                               </>
+                             )}
+                             {parcel.status === 'collected' && (
+                               <span className="text-gray-400 text-xs sm:text-sm">รับแล้ว</span>
+                             )}
+                           </div>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
                 </table>
               </div>
             )}
@@ -313,6 +363,58 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
         title={selectedImage?.title}
         onClose={() => setSelectedImage(null)}
       />
+
+      {/* Sendout Date Modal */}
+      {sendoutModal.isOpen && sendoutModal.parcel && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mt-2">
+                ระบุวันที่ต้องการรับพัสดุ
+              </h3>
+              <div className="mt-2 text-sm text-gray-500 mb-4">
+                เลขพัสดุ: {sendoutModal.parcel.tracking_number}
+              </div>
+              <div className="mt-4 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
+                  วันที่และเวลาที่ต้องการรับพัสดุ
+                </label>
+                <input
+                  type="datetime-local"
+                  value={sendoutDate}
+                  onChange={(e) => setSendoutDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                />
+              </div>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={handleCloseSendoutModal}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 text-sm font-medium"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleUpdateSendout}
+                  disabled={!sendoutDate || isSubmitting}
+                  className={`px-4 py-2 rounded-md text-sm font-medium ${
+                    !sendoutDate || isSubmitting
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {isSubmitting ? 'กำลังบันทึก...' : 'บันทึก'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

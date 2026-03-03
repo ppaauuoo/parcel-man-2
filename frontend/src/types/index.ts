@@ -22,6 +22,7 @@ export interface Parcel {
   staff_out_name?: string;
   resident_name?: string;
   room_number?: string;
+  sendout_at?: string;
 }
 
 export interface LoginRequest {

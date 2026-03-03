@@ -571,6 +571,48 @@ app.put('/api/parcels/:id/collect', authenticateToken, requireRole('staff'), asy
   }
 });
 
+// Update parcel sendout date (resident only)
+app.put('/api/parcels/update-parcel', authenticateToken, requireRole('resident'), async (req: express.Request, res: express.Response) => {
+  try {
+    const { parcel_id, sendout_at } = req.body;
+
+    if (!parcel_id || !sendout_at) {
+      return res.status(400).json({ 
+        error: 'Missing required fields', 
+        message: 'กรุณาระบุข้อมูลให้ครบถ้วน' 
+      });
+    }
+
+    // Get parcel details
+    const parcel = await db.get(
+      'SELECT * FROM parcels WHERE id = ? AND resident_id = ?',
+      [parcel_id, req.user.id]
+    );
+
+    if (!parcel) {
+      return res.status(404).json({ 
+        error: 'Parcel not found or access denied', 
+        message: 'ไม่พบพัสดุนี้หรือไม่มีสิทธิ์ในการแก้ไข' 
+      });
+    }
+
+    // Update parcel sendout_at
+    await db.run(
+      'UPDATE parcels SET sendout_at = ? WHERE id = ?',
+      [sendout_at, parcel_id]
+    );
+
+    return res.json({
+      success: true,
+      message: 'บันทึกวันที่ต้องการรับพัสดุเรียบร้อย'
+    });
+
+  } catch (error) {
+    console.error('Update parcel error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในระบบ' });
+  }
+});
+
 // Get history
 app.get('/api/parcels/history', authenticateToken, async (req: express.Request, res: express.Response) => {
   try {

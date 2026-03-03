@@ -22,6 +22,7 @@ export interface Parcel {
   photo_out_path?: string;
   staff_in_id?: number;
   staff_out_id?: number;
+  sendout_at?: string;
 }
 
 export interface CreateParcelRequest {
@@ -64,11 +65,23 @@ export const setupDatabaseSchema = async (db: Database) => {
       photo_out_path TEXT,
       staff_in_id INTEGER,
       staff_out_id INTEGER,
+      sendout_at TEXT,
       FOREIGN KEY (resident_id) REFERENCES users(id),
       FOREIGN KEY (staff_in_id) REFERENCES users(id),
       FOREIGN KEY (staff_out_id) REFERENCES users(id)
     )
   `);
+
+  // Add sendout_at column if it doesn't exist (for existing databases)
+  try {
+    await db.exec(`ALTER TABLE parcels ADD COLUMN sendout_at TEXT`);
+    console.log('✅ Added sendout_at column to parcels table');
+  } catch (error: any) {
+    // Column already exists, which is fine
+    if (!error.message.includes('duplicate column name')) {
+      console.error('Error adding sendout_at column:', error);
+    }
+  }
 
   // Create indexes for better performance
   await db.exec(`

@@ -70,6 +70,22 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
     setPagination(prev => ({ ...prev, offset: 0 }));
   };
 
+  const handleReturn = async (parcelId: number) => {
+    if (!window.confirm('ยืนยันการตีกลับพัสดุ?')) {
+      return;
+    }
+
+    try {
+      const response = await parcelsAPI.returnParcel(parcelId);
+      if (response.success) {
+        loadParcels();
+      }
+    } catch (error: any) {
+      console.error('Error returning parcel:', error);
+      alert(error.response?.data?.message || 'เกิดข้อผิดพลาดในการตีกลับพัสดุ');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('th-TH', {
       year: 'numeric',
@@ -83,11 +99,13 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
   const getStatusColor = (status: string) => {
     return status === 'pending' 
       ? 'bg-yellow-100 text-yellow-800' 
+      : status === 'returned'
+      ? 'bg-red-100 text-red-800'
       : 'bg-green-100 text-green-800';
   };
 
   const getStatusText = (status: string) => {
-    return status === 'pending' ? 'รอรับ' : 'รับแล้ว';
+    return status === 'pending' ? 'รอรับ' : status === 'returned' ? 'ตีกลับ' : 'รับแล้ว';
   };
 
   const totalPages = Math.ceil(pagination.total / pagination.limit);
@@ -213,7 +231,7 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
@@ -260,6 +278,24 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                   <dt className="text-sm font-medium text-gray-500 truncate">รับแล้ว</dt>
                   <dd className="text-lg font-medium text-gray-900">
                     {parcels.filter(p => p.status === 'collected').length}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-red-100 rounded-md p-3">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">ตีกลับ</dt>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {parcels.filter(p => p.status === 'returned').length}
                   </dd>
                 </dl>
               </div>
@@ -344,6 +380,9 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                             </th>
                             <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               รูปภาพ
+                            </th>
+                            <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              ดำเนินการ
                             </th>
                           </tr>
                         </thead>
@@ -441,12 +480,23 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                                       </div>
                                     </button>
                                   )}
-                                  {!parcel.photo_in_path && !parcel.photo_out_path && (
-                                    <span className="text-gray-400 text-xs">ไม่มีรูปภาพ</span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
+                                   {!parcel.photo_in_path && !parcel.photo_out_path && (
+                                     <span className="text-gray-400 text-xs">ไม่มีรูปภาพ</span>
+                                   )}
+                                 </div>
+                               </td>
+                               <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                 <span className="block sm:hidden text-xs text-gray-500 mb-1">ดำเนินการ:</span>
+                                 {parcel.status === 'pending' && (
+                                   <button
+                                     onClick={() => handleReturn(parcel.id)}
+                                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                   >
+                                     ตีกลับ
+                                   </button>
+                                 )}
+                               </td>
+                             </tr>
                           ))}
                         </tbody>
                       </table>

@@ -12,7 +12,7 @@ export interface Parcel {
   resident_id: number;
   carrier_name: string;
   photo_in_path?: string;
-  status: 'pending' | 'collected';
+  status: 'pending' | 'collected' | 'returned';
   created_at: string;
   collected_at?: string;
   photo_out_path?: string;

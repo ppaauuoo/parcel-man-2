@@ -119,6 +119,10 @@ export const parcelsAPI = {
     });
     return response.data;
   },
+  returnParcel: async (parcelId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await api.put(`/parcels/${parcelId}/return`);
+    return response.data;
+  },
 };
 
 export default api;

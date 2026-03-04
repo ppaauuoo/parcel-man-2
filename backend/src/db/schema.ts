@@ -16,7 +16,7 @@ export interface Parcel {
   resident_id: number;
   carrier_name: string;
   photo_in_path?: string;
-  status: 'pending' | 'collected';
+  status: 'pending' | 'collected' | 'returned';
   created_at: string;
   collected_at?: string;
   photo_out_path?: string;
@@ -59,7 +59,7 @@ export const setupDatabaseSchema = async (db: Database) => {
       resident_id INTEGER NOT NULL,
       carrier_name TEXT NOT NULL,
       photo_in_path TEXT,
-      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'collected')),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'collected', 'returned')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       collected_at TEXT,
       photo_out_path TEXT,
@@ -81,6 +81,44 @@ export const setupDatabaseSchema = async (db: Database) => {
     if (!error.message.includes('duplicate column name')) {
       console.error('Error adding sendout_at column:', error);
     }
+  }
+
+  // Update status column CHECK constraint to include 'returned' (for existing databases)
+  try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS parcels_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tracking_number TEXT UNIQUE NOT NULL,
+        resident_id INTEGER NOT NULL,
+        carrier_name TEXT NOT NULL,
+        photo_in_path TEXT,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'collected', 'returned')),
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        collected_at TEXT,
+        photo_out_path TEXT,
+        staff_in_id INTEGER,
+        staff_out_id INTEGER,
+        sendout_at TEXT,
+        FOREIGN KEY (resident_id) REFERENCES users(id),
+        FOREIGN KEY (staff_in_id) REFERENCES users(id),
+        FOREIGN KEY (staff_out_id) REFERENCES users(id)
+      )
+    `);
+    
+    const existingTable = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='parcels_new'");
+    if (existingTable) {
+      await db.exec(`
+        INSERT INTO parcels_new (id, tracking_number, resident_id, carrier_name, photo_in_path, status, created_at, collected_at, photo_out_path, staff_in_id, staff_out_id, sendout_at)
+        SELECT id, tracking_number, resident_id, carrier_name, photo_in_path, status, created_at, collected_at, photo_out_path, staff_in_id, staff_out_id, sendout_at FROM parcels
+      `);
+      
+      await db.exec(`DROP TABLE parcels`);
+      await db.exec(`ALTER TABLE parcels_new RENAME TO parcels`);
+      
+      console.log('✅ Updated parcels table status CHECK constraint');
+    }
+  } catch (error: any) {
+    console.log('ℹ️ Database schema already up to date or migration not needed');
   }
 
   // Create indexes for better performance

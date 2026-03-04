@@ -571,6 +571,41 @@ app.put('/api/parcels/:id/collect', authenticateToken, requireRole('staff'), asy
   }
 });
 
+// Return parcel
+app.put('/api/parcels/:id/return', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
+  try {
+    const { id } = req.params;
+
+    // Get parcel details
+    const parcel = await db.get(
+      'SELECT * FROM parcels WHERE id = ? AND status = "pending"',
+      [id]
+    );
+
+    if (!parcel) {
+      return res.status(404).json({ 
+        error: 'Parcel not found or invalid status', 
+        message: 'ไม่พบพัสดุนี้หรือสถานะไม่ถูกต้อง' 
+      });
+    }
+
+    // Update parcel status to returned
+    await db.run(
+      'UPDATE parcels SET status = "returned", collected_at = CURRENT_TIMESTAMP, staff_out_id = ? WHERE id = ?',
+      [req.user.id, id]
+    );
+
+    return res.json({
+      success: true,
+      message: 'ตีกลับพัสดุเรียบร้อย'
+    });
+
+  } catch (error) {
+    console.error('Return parcel error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในระบบ' });
+  }
+});
+
 // Update parcel sendout date (resident only)
 app.put('/api/parcels/update-parcel', authenticateToken, requireRole('resident'), async (req: express.Request, res: express.Response) => {
   try {

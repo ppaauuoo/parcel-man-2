@@ -45,7 +45,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
 
   // Set up video element when stream changes
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: number;
     
     if (stream && videoRef.current) {
       console.log('📷 Setting video srcObject...');

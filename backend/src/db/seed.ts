@@ -1,5 +1,5 @@
 import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
+import { open } from 'sqlite';
 import { setupDatabaseSchema } from './schema';
 import bcrypt from 'bcrypt';
 

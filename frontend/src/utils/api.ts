@@ -47,6 +47,10 @@ export const authAPI = {
     const response = await api.post('/auth/login', data);
     return response.data;
   },
+  registerResident: async (data: RegisterResidentRequest): Promise<RegisterResidentResponse> => {
+    const response = await api.post('/auth/register-resident', data);
+    return response.data;
+  },
 };
 
 // Users API

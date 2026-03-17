@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { authAPI } from '../utils/api';
 import { LoginRequest, User } from '../types';
 
@@ -176,6 +177,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <p><strong>ผู้อาศัย ห้อง 101:</strong> resident101 / resident123</p>
               <p><strong>ผู้อาศัย ห้อง 102:</strong> resident102 / resident123</p>
             </div>
+          </div>
+
+          {/* Registration Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              ยังไม่มีบัญชีผู้อาศัย?{' '}
+              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                ลงทะเบียน
+              </Link>
+            </p>
           </div>
         </div>
       </div>

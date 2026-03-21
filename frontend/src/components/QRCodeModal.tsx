@@ -185,8 +185,13 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, parcel }) =>
                     </>
                   ) : (
                     <>
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684m0 0a3 3 0 00-5.367-2.684m0 9.316a3 3 0 105.367 2.684" />
+                      <svg className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="currentColor" stroke-width="2"/>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="currentColor" stroke-width="2"/>
+  
+                        <circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2" fill="white"/>
+                        <circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="white"/>
+                        <circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2" fill="white"/>
                       </svg>
                       <span className="hidden xs:inline">แชร์</span>
                       <span className="xs:hidden">แชร์</span>

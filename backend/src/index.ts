@@ -113,6 +113,66 @@ const requireRole = (role: 'staff' | 'resident') => {
 };
 
 // Routes
+// Register resident (public - no auth required)
+app.post('/api/auth/register-resident', async (req: express.Request, res: express.Response) => {
+  try {
+    const { username, password, room_number, phone_number } = req.body;
+
+    if (!username || !password || !room_number || !phone_number) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'กรุณากรอกข้อมูลให้ครบถ้วน'
+      });
+    }
+
+    const existingUser = await db.get(
+      'SELECT id FROM users WHERE username = ?',
+      username
+    );
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: 'Username already exists',
+        message: 'ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว'
+      });
+    }
+
+    const existingRoom = await db.get(
+      'SELECT id FROM users WHERE role = "resident" AND room_number = ?',
+      room_number
+    );
+
+    if (existingRoom) {
+      return res.status(400).json({
+        error: 'Room already occupied',
+        message: 'ห้องนี้มีผู้อาศัยอยู่แล้ว'
+      });
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    const result = await db.run(
+      'INSERT INTO users (username, password, role, room_number, phone_number) VALUES (?, ?, ?, ?, ?)',
+      username, hashedPassword, 'resident', room_number, phone_number
+    );
+
+    const newUser = await db.get(
+      'SELECT id, username, room_number, phone_number FROM users WHERE id = ?',
+      result.lastID
+    );
+
+    return res.json({
+      success: true,
+      message: 'ลงทะเบียนผู้อาศัยเรียบร้อย',
+      user: newUser
+    });
+
+  } catch (error) {
+    console.error('Register resident error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในระบบ' });
+  }
+});
+
 // Login
 app.post('/api/auth/login', async (req: express.Request, res: express.Response) => {
   try {

@@ -68,7 +68,17 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
 
   const handleOpenSendoutModal = (parcel: Parcel) => {
     setSendoutModal({ isOpen: true, parcel });
-    setSendoutDate(parcel.sendout_at || '');
+    if (parcel.sendout_at) {
+      const date = new Date(parcel.sendout_at);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      setSendoutDate(`${year}-${month}-${day}T${hours}:${minutes}`);
+    } else {
+      setSendoutDate('');
+    }
   };
 
   const handleCloseSendoutModal = () => {

@@ -189,6 +189,13 @@ const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout 
             >
               ประวัติ
             </button>
+            <button
+              className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
+              onMouseEnter={preload.userList}
+              onClick={() => navigate('/users')}
+            >
+              จัดการผู้ใช้
+            </button>
           </div>
         </div>
       </div>

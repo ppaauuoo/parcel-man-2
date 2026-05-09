@@ -75,8 +75,12 @@ export const parcelsAPI = {
     const response = await api.post('/parcels', data);
     return response.data;
   },
-  getResidentParcels: async (residentId: number): Promise<{ success: boolean; parcels: Parcel[] }> => {
-    const response = await api.get(`/parcels/resident/${residentId}`);
+  getResidentParcels: async (residentId: number, limit?: number, offset?: number): Promise<{ success: boolean; parcels: Parcel[]; total?: number; pagination?: { limit: number; offset: number } }> => {
+    const params = new URLSearchParams();
+    if (limit !== undefined) params.append('limit', limit.toString());
+    if (offset !== undefined) params.append('offset', offset.toString());
+    const query = params.toString() ? `?${params}` : '';
+    const response = await api.get(`/parcels/resident/${residentId}${query}`);
     return response.data;
   },
   collectParcel: async (parcelId: number, staffId: number, evidencePhotoPath?: string): Promise<{ success: boolean; message: string }> => {

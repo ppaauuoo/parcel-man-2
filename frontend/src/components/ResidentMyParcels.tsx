@@ -28,16 +28,19 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
   }>({ isOpen: false, parcel: null });
   const [sendoutDate, setSendoutDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pagination, setPagination] = useState({ limit: 30, offset: 0, total: 0 });
 
   useEffect(() => {
     loadParcels();
-  }, [user.id]);
+  }, [user.id, pagination.offset]);
 
   const loadParcels = async () => {
+    setLoading(true);
     try {
-      const response = await parcelsAPI.getResidentParcels(user.id);
+      const response = await parcelsAPI.getResidentParcels(user.id, pagination.limit, pagination.offset);
       if (response.success) {
         setParcels(response.parcels);
+        setPagination(prev => ({ ...prev, total: response.total ?? prev.total }));
       }
     } catch (error) {
       console.error('Error loading parcels:', error);
@@ -313,6 +316,7 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
                                     src={parcel.photo_in_path!}
                                     alt="Receive photo"
                                     className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-blue-200 cursor-pointer hover:border-blue-400 transition-colors"
+                                    loading="lazy"
                                   />
                                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
                                     <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -334,6 +338,7 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
                                     src={parcel.photo_out_path!}
                                     alt="Delivery evidence"
                                     className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-green-200 cursor-pointer hover:border-green-400 transition-colors"
+                                    loading="lazy"
                                   />
                                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
                                     <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,6 +382,29 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
                      ))}
                    </tbody>
                 </table>
+              </div>
+            )}
+            {pagination.total > pagination.limit && (
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  {pagination.offset + 1}-{Math.min(pagination.offset + pagination.limit, pagination.total)} จาก {pagination.total}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPagination(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))}
+                    disabled={pagination.offset === 0}
+                    className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    ก่อนหน้า
+                  </button>
+                  <button
+                    onClick={() => setPagination(prev => ({ ...prev, offset: prev.offset + prev.limit }))}
+                    disabled={pagination.offset + pagination.limit >= pagination.total}
+                    className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    ถัดไป
+                  </button>
+                </div>
               </div>
             )}
           </div>

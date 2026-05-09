@@ -128,5 +128,6 @@ export const setupDatabaseSchema = async (db: Database) => {
     CREATE INDEX IF NOT EXISTS idx_parcels_resident_id ON parcels(resident_id);
     CREATE INDEX IF NOT EXISTS idx_parcels_status ON parcels(status);
     CREATE INDEX IF NOT EXISTS idx_parcels_tracking_number ON parcels(tracking_number);
+    CREATE INDEX IF NOT EXISTS idx_parcels_created_at ON parcels(created_at);
   `);
 };

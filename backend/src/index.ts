@@ -78,6 +78,12 @@ const initializeDatabase = async () => {
     });
     
     await setupDatabaseSchema(db);
+
+    // Performance: WAL mode for concurrent reads+writes
+    await db.exec('PRAGMA journal_mode=WAL');
+    await db.exec('PRAGMA synchronous=NORMAL');
+    await db.exec('PRAGMA cache_size=-8000'); // 8MB cache
+
     console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
@@ -434,17 +440,10 @@ app.post('/api/upload/base64-photo', authenticateToken, requireRole('staff'), as
 
     console.log(`📁 Target directory: ${parcelDir}`);
 
-    // Create directory if it doesn't exist
+    // Create directory if it doesn't exist (async)
     try {
-      if (!fs.existsSync(parcelDir)) {
-        fs.mkdirSync(parcelDir, { recursive: true });
-        console.log(`✅ Directory created: ${parcelDir}`);
-      }
-
-      // Verify directory exists
-      if (!fs.existsSync(parcelDir)) {
-        throw new Error(`Failed to create directory: ${parcelDir}`);
-      }
+      await fs.promises.mkdir(parcelDir, { recursive: true });
+      console.log(`✅ Directory created: ${parcelDir}`);
     } catch (dirError) {
       console.error('❌ Directory creation failed:', dirError);
       return res.status(500).json({
@@ -453,18 +452,11 @@ app.post('/api/upload/base64-photo', authenticateToken, requireRole('staff'), as
       });
     }
 
-    // Write file
+    // Write file (async — don't block event loop)
     const filePath = path.join(parcelDir, filename);
     try {
-      fs.writeFileSync(filePath, buffer);
-      console.log(`💾 File write initiated: ${filePath}`);
-
-      // Verify file was written
-      if (!fs.existsSync(filePath)) {
-        throw new Error(`Failed to write file: ${filePath}`);
-      }
-
-      const stats = fs.statSync(filePath);
+      await fs.promises.writeFile(filePath, buffer);
+      const stats = await fs.promises.stat(filePath);
       console.log(`✅ Photo saved successfully: ${stats.size} bytes`);
     } catch (writeError) {
       console.error('❌ File write failed:', writeError);
@@ -573,6 +565,10 @@ app.get('/api/parcels/resident/:id', authenticateToken, async (req: express.Requ
       return res.status(403).json({ error: 'Access denied', message: 'ไม่มีสิทธิ์ในการดูข้อมูลนี้' });
     }
 
+    const { limit: limitStr, offset: offsetStr } = req.query;
+    const limit = Math.min(parseInt(limitStr as string) || 50, 200);
+    const offset = parseInt(offsetStr as string) || 0;
+
     const parcels = await db.all(`
       SELECT p.*, u.room_number, u.username as resident_name, 
              u_in.username as staff_in_name, u_out.username as staff_out_name
@@ -582,11 +578,19 @@ app.get('/api/parcels/resident/:id', authenticateToken, async (req: express.Requ
       LEFT JOIN users u_out ON p.staff_out_id = u_out.id
       WHERE p.resident_id = ?
       ORDER BY p.created_at DESC
-    `, id);
+      LIMIT ? OFFSET ?
+    `, [id, limit, offset]);
+
+    const countResult = await db.get(
+      'SELECT COUNT(*) as total FROM parcels WHERE resident_id = ?',
+      [id]
+    );
 
     return res.json({
       success: true,
-      parcels
+      parcels,
+      total: countResult.total,
+      pagination: { limit, offset }
     });
 
   } catch (error) {

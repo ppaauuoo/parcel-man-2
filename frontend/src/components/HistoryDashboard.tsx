@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Parcel } from '../types';
 import { parcelsAPI } from '../utils/api';
 import ImageModal from './ImageModal';
@@ -22,9 +22,14 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
     total: 0,
   });
   const [selectedImage, setSelectedImage] = useState<{url: string; title: string} | null>(null);
+  const filterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    loadParcels();
+    if (filterTimer.current) clearTimeout(filterTimer.current);
+    filterTimer.current = setTimeout(() => {
+      loadParcels();
+    }, 400);
+    return () => { if (filterTimer.current) clearTimeout(filterTimer.current); };
   }, [filters, pagination.limit, pagination.offset]);
 
   const loadParcels = async () => {
@@ -53,7 +58,7 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
       ...prev,
       [name]: value,
     }));
-    setPagination(prev => ({ ...prev, offset: 0 })); // Reset to first page
+    setPagination(prev => ({ ...prev, offset: 0 }));
   };
 
   const handleSearch = () => {
@@ -451,6 +456,7 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                                         src={parcel.photo_in_path!}
                                         alt="Receive photo"
                                         className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-blue-200 cursor-pointer hover:border-blue-400 transition-colors"
+                                        loading="lazy"
                                       />
                                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
                                         <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -472,6 +478,7 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                                         src={parcel.photo_out_path!}
                                         alt="Delivery photo"
                                         className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded border-2 border-green-200 cursor-pointer hover:border-green-400 transition-colors"
+                                        loading="lazy"
                                       />
                                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded flex items-center justify-center">
                                         <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">

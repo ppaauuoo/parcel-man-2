@@ -1,6 +1,6 @@
 # iCondo - Parcel Management System
 
-A modern parcel management system for condominiums, enabling staff to receive parcels and residents to collect them using QR codes.
+Modern parcel management for condominiums. Staff receive parcels, residents collect via QR codes. Self-registration, pickup scheduling, photo evidence, Docker + K3s deployment.
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -8,69 +8,88 @@ A modern parcel management system for condominiums, enabling staff to receive pa
 ## Features
 
 - **Staff Dashboard**
-  - Receive and log incoming parcels with photos
-  - Scan QR codes to verify and hand over parcels to residents
-  - View complete parcel history with filtering options
-  - Manage resident accounts
+  - Receive & log incoming parcels with photo (camera or file upload)
+  - Scan QR codes to verify & hand over parcels to residents
+  - Mark parcels as **returned** to sender
+  - View complete parcel history with filtering (room, date range)
+  - Manage resident accounts (add/register)
+  - Photo evidence for both inbound & delivery
 
 - **Resident Portal**
   - View all parcels assigned to their room
-  - Generate QR codes for easy parcel collection
-  - Track parcel history
-  - Receive notifications for new arrivals
+  - Generate QR codes for easy collection
+  - **Set preferred pickup date/time** (sendout scheduling)
+  - **Self-registration** — sign up without staff
+  - Track parcel history with photos
+  - Share QR code to let others collect
 
 - **Technical Features**
-  - Real-time QR code generation and scanning
-  - Photo capture for parcel verification
-  - Mobile-responsive design
+  - Real-time QR code generation & scanning
+  - **Base64 photo capture** (compatible with mobile webcams)
+  - **Image compression** via sharp (auto-rotate, resize to 1200px, JPEG quality 80)
+  - **Code splitting** with React.lazy for fast initial load
+  - **Error boundaries** for graceful failure handling
+  - **SQLite WAL mode** + indexes for perf
   - Thai language interface
-  - Role-based access control
+  - Role-based access control (JWT)
+  - Mobile-responsive design
+  - **Docker deployment** with nginx SPA proxy
+  - **K3s/Kubernetes** orchestration
 
 ## Tech Stack
 
 ### Frontend
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Styling
-- **React Router** - Client-side routing
-- **Axios** - HTTP client
-- **qrcode.react** - QR code generation
-- **html5-qrcode** - QR code scanning
+- **React 18** — UI framework
+- **TypeScript** — Type safety
+- **Vite** — Build tool & dev server
+- **Tailwind CSS** — Styling
+- **React Router v6** — Client-side routing
+- **Axios** — HTTP client
+- **qrcode.react** — QR code generation
+- **html5-qrcode** — QR code scanning
 
 ### Backend
-- **Express** - Web framework
-- **TypeScript** - Type safety
-- **SQLite** - Database
-- **JWT** - Authentication
-- **Multer** - File uploads
-- **bcrypt** - Password hashing
-- **qrcode** - QR code generation
-- **CORS** - Cross-origin resource sharing
+- **Express** — Web framework
+- **TypeScript** — Type safety
+- **tsx** — TypeScript execution (dev + prod)
+- **SQLite** — Database (WAL mode)
+- **JWT** — Authentication
+- **Multer** — File uploads
+- **bcrypt** — Password hashing
+- **sharp** — Image processing (resize, compress, EXIF rotate)
+- **qrcode** — QR code generation
+- **CORS** — Cross-origin resource sharing
+
+### Infrastructure
+- **Docker** — Containerized backend + frontend
+- **nginx** — SPA serve + API proxy
+- **K3s / Kubernetes** — Deployment, services, ingress, PVC
+- **Docker Hub** — Image registry (`ppaaul/icondo-*`)
+- **kubectl** — Rollout management
 
 ## Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 - Modern web browser (Chrome, Firefox, Safari, Edge)
-- Camera access (for photo capture and QR scanning)
+- Camera access (for photo capture & QR scanning)
+- Docker (optional — for container deployment)
 
 ## Installation
 
-### Clone the repository
+### Clone
 ```bash
 git clone https://github.com/yourusername/icondo.git
 cd icondo
 ```
 
 ### Install dependencies
-
 ```bash
-# Install backend dependencies
+# Backend
 cd backend
 npm install
 
-# Install frontend dependencies
+# Frontend
 cd ../frontend
 npm install
 ```
@@ -80,47 +99,45 @@ npm install
 cd backend
 npm run db:seed
 ```
-
-This will create the SQLite database and populate it with sample data including test users and sample parcels.
+Creates SQLite database (`icondo.db`) with sample data: staff account, 2 residents, 3 sample parcels.
 
 ## Usage
 
-### Quick Start (Windows)
-
-Run the provided batch file to start both servers:
+### Quick Start
 ```bash
+# Windows
 run-dev-windows.bat
+
+# Unix/Bash
+./run-dev.bat
 ```
 
 ### Manual Start
-
-**Backend Server:**
 ```bash
+# Backend (port 3000)
 cd backend
 npm run dev
-```
-The backend will start on `http://localhost:3000`
 
-**Frontend Server:**
-```bash
+# Frontend (port 5173)
 cd frontend
 npm run dev
 ```
-The frontend will start on `http://localhost:5173`
 
-### Access the Application
-
-Open your browser and navigate to: `http://localhost:5173`
+### Access
+Open `http://localhost:5173`
 
 ## Demo Credentials
 
-### Staff Account
-- **Username:** `staff01`
-- **Password:** `staff123`
+### Staff
+| Username | Password | Role |
+|----------|----------|------|
+| `staff01` | `staff123` | staff |
 
-### Resident Accounts
-- **Username:** `resident101` | **Password:** `resident123` | **Room:** 011
-- **Username:** `resident102` | **Password:** `resident123` | **Room:** 012
+### Residents
+| Username | Password | Room |
+|----------|----------|------|
+| `resident101` | `resident123` | 101 |
+| `resident102` | `resident123` | 102 |
 
 ## Project Structure
 
@@ -128,108 +145,152 @@ Open your browser and navigate to: `http://localhost:5173`
 icondo/
 ├── backend/
 │   ├── src/
-│   │   ├── db/              # Database schema and connection
-│   │   │   ├── schema.ts    # Database tables and types
-│   │   │   ├── seed.ts      # Sample data seeder
-│   │   │   └── sqlite.ts    # SQLite connection
-│   │   ├── routes/          # API endpoints
-│   │   │   ├── auth.ts      # Authentication routes
-│   │   │   ├── parcels.ts   # Parcel management routes
-│   │   │   └── users.ts     # User management routes
-│   │   ├── utils/           # Utility functions
-│   │   │   └── auth.ts      # Auth helpers (hashing, JWT)
-│   │   ├── express-index.ts # Express server entry
-│   │   └── index.ts         # Main application entry
-│   ├── icondo.db            # SQLite database (created after seeding)
+│   │   ├── db/
+│   │   │   ├── schema.ts      # DB tables, indexes, migration
+│   │   │   ├── seed.ts        # Sample data seeder
+│   │   │   └── sqlite.ts      # SQLite connection
+│   │   ├── utils/
+│   │   │   └── auth.ts        # Password hashing helper
+│   │   ├── index.ts           # Express server (all routes inline)
+│   │   └── ...
+│   ├── icondo.db              # SQLite database (after seed)
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── components/       # React components
-│   │   │   ├── AddResidentModal.tsx
-│   │   │   ├── CameraCapture.tsx
-│   │   │   ├── HistoryDashboard.tsx
-│   │   │   ├── ImageModal.tsx
-│   │   │   ├── Login.tsx
-│   │   │   ├── QRCodeModal.tsx
-│   │   │   ├── ResidentMyParcels.tsx
-│   │   │   ├── StaffDeliveryOut.tsx
-│   │   │   ├── StaffReceiveParcel.tsx
-│   │   │   └── UserList.tsx
-│   │   ├── types/           # TypeScript type definitions
-│   │   │   └── index.ts
-│   │   ├── utils/           # Utility functions
-│   │   │   └── api.ts       # API client with axios
-│   │   ├── App.tsx          # Main app with routing
-│   │   └── main.tsx         # React entry point
+│   │   ├── components/
+│   │   │   ├── AddResidentModal.tsx   # Staff add resident form
+│   │   │   ├── CameraCapture.tsx      # Camera/webcam capture
+│   │   │   ├── ErrorBoundary.tsx      # Error fallback UI
+│   │   │   ├── HistoryDashboard.tsx   # Parcel history with filters
+│   │   │   ├── ImageModal.tsx         # Full-screen photo viewer
+│   │   │   ├── Login.tsx              # Auth login form
+│   │   │   ├── QRCodeModal.tsx        # QR code generator + share
+│   │   │   ├── Register.tsx           # Resident self-registration
+│   │   │   ├── ResidentMyParcels.tsx  # Resident parcel list + pickup scheduling
+│   │   │   ├── StaffDeliveryOut.tsx   # QR scan + handover + return
+│   │   │   ├── StaffReceiveParcel.tsx # Receive new parcel form
+│   │   │   └── UserList.tsx           # Resident list (staff only)
+│   │   ├── types/
+│   │   │   └── index.ts       # TypeScript interfaces
+│   │   ├── utils/
+│   │   │   ├── api.ts         # Axios client with interceptors
+│   │   │   └── preload.ts     # Lazy loading helpers
+│   │   ├── App.tsx            # Router + auth state + code splitting
+│   │   ├── main.tsx           # React entry point
+│   │   └── index.css          # Tailwind base styles
 │   └── package.json
-├── run-dev-windows.bat      # Windows development script
-├── run-dev.bat              # Unix/Bash development script
-├── stop.bat                 # Stop all servers
+├── diagrams/                   # Mermaid architecture diagrams
+├── k8s/                        # Kubernetes manifests
+│   ├── backend-deployment.yaml
+│   ├── backend-service.yaml
+│   ├── frontend-deployment.yaml
+│   ├── frontend-service.yaml
+│   ├── ingress.yaml
+│   ├── kustomization.yaml
+│   ├── namespace.yaml
+│   ├── pvc.yaml
+│   └── secret.yaml
+├── Dockerfile.backend          # Express + SQLite (node:20-alpine)
+├── Dockerfile.frontend         # React build → nginx serve
+├── nginx.conf                  # SPA routing + API proxy to backend
+├── build-deploy.bat            # Docker build + push + kubectl apply
+├── rollout-restart.bat         # kubectl rollout restart helper
+├── run-dev-windows.bat         # Windows dev launcher
+├── run-dev.bat                 # Unix dev launcher
+├── run-advanced.bat            # Advanced startup options
+├── stop.bat                    # Stop all servers
 └── README.md
 ```
 
 ## API Endpoints
 
+### Health
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/health` | No | Server health + uptime |
+
 ### Authentication
-- `POST /api/auth/login` - User login
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/login` | No | Login with username, password, role |
+| POST | `/api/auth/register-resident` | No | Self-registration |
+| POST | `/api/users/register` | Staff | Staff registers a resident |
 
 ### Users
-- `GET /api/users/profile` - Get current user profile
-- `GET /api/users/residents` - Get all residents (staff only)
-- `POST /api/users/register` - Register new resident (staff only)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/users/profile` | Any | Get current user profile |
+| GET | `/api/users/residents` | Staff | List all residents |
 
 ### Parcels
-- `POST /api/parcels` - Create new parcel (staff only)
-- `GET /api/parcels/resident/:id` - Get parcels for resident
-- `PUT /api/parcels/:id/collect` - Mark parcel as collected (staff only)
-- `GET /api/parcels/history` - Get parcel history (with filters)
-- `GET /api/parcels/:id/qrcode` - Generate QR code for parcel
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/parcels` | Staff | Create new parcel |
+| GET | `/api/parcels/:id` | Any | Get single parcel details |
+| GET | `/api/parcels/resident/:id` | Any | Get parcels for a resident (paginated) |
+| GET | `/api/parcels/history` | Any | Parcel history with filters (room, date) |
+| PUT | `/api/parcels/:id/collect` | Staff | Mark parcel as collected |
+| PUT | `/api/parcels/:id/return` | Staff | Mark parcel as returned to sender |
+| PUT | `/api/parcels/update-parcel` | Resident | Set preferred pickup date (`sendout_at`) |
+| GET | `/api/parcels/:id/qrcode` | Any | Generate QR code data URL |
 
-## Development Workflow
+### Uploads
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/upload/parcel-photo` | Staff | Upload inbound photo (multipart) |
+| POST | `/api/upload/evidence-photo` | Staff | Upload delivery evidence (multipart) |
+| POST | `/api/upload/base64-photo` | Staff | Upload base64 photo (mobile/webcam) — auto-compressed via sharp |
 
-### Building for Production
+## Deployment
 
-**Frontend:**
+### Docker (manual)
 ```bash
-cd frontend
-npm run build
-```
-This creates an optimized production build in `frontend/dist/`
-
-**Backend:**
-```bash
-cd backend
-npm start
-```
-
-### Code Quality
-
-**Lint the frontend:**
-```bash
-cd frontend
-npm run lint
+build-deploy.bat           # Build + push + deploy to K3s
+build-deploy.bat skipdeploy  # Build + push only
 ```
 
-### Hot Reload
+### Kubernetes
+```bash
+kubectl apply -k k8s/
+```
 
-Both frontend and backend support hot reload during development:
-- Frontend changes automatically refresh in the browser
-- Backend changes automatically restart the server
+### Rollout restart
+```bash
+rollout-restart.bat              # Restart both deployments
+rollout-restart.bat backend      # Restart backend only
+rollout-restart.bat frontend     # Restart frontend only
+rollout-restart.bat status       # Check rollout status
+```
+
+### Images
+- `ppaaul/icondo-backend:latest`
+- `ppaaul/icondo-frontend:latest`
 
 ## Configuration
 
-### Environment Variables
-
-Backend environment variables (create `.env` in `backend/`):
+### Backend `.env`
 ```
 JWT_SECRET=your-secret-key-here
 PORT=3000
+DATA_DIR=/path/to/data     # Default: backend/
 ```
 
-Frontend environment variables (create `.env` in `frontend/`):
+### Frontend `.env`
 ```
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=/api          # Default: /api (nginx proxy)
 ```
+
+### nginx (Docker)
+Serves frontend SPA, proxies `/api/` and `/uploads/` to backend. Gzip enabled, asset caching 1 year.
+
+## Performance
+
+- **SQLite WAL mode** — concurrent reads + writes
+- **Database indexes** — 7 indexes on users + parcels
+- **Image compression** — sharp resizes to 1200px, JPEG quality 80, EXIF auto-rotate
+- **Code splitting** — React.lazy loads components on demand
+- **Static caching** — nginx serves `/assets/` with `public, immutable` (1 year)
+- **Upload caching** — Express serves `/uploads/` with `max-age=86400`
 
 ## Browser Support
 
@@ -238,57 +299,32 @@ VITE_API_URL=http://localhost:3000/api
 - Safari (latest)
 - Edge (latest)
 
-**Note:** Camera features require HTTPS or localhost for security reasons.
+**Note:** Camera features require HTTPS or localhost.
 
 ## Troubleshooting
 
 ### Camera not working
-- Ensure camera permissions are allowed in your browser
-- Check if another application is using the camera
-- Try refreshing the page
-- On mobile devices, ensure the app is served over HTTPS
+- Allow camera permissions in browser
+- Check no other app using camera
+- Refresh page
+- Mobile: serve over HTTPS
 
 ### Database errors
 - Stop all servers
 - Delete `backend/icondo.db`
-- Run `npm run db:seed` to recreate the database
+- Re-run `npm run db:seed`
 
 ### CORS issues
-- Ensure both frontend and backend are running
-- Check that the backend is on port 3000 and frontend on port 5173
-- Verify proxy configuration in `frontend/vite.config.ts`
+- Ensure both servers running (backend:3000, frontend:5173)
+- Check Vite proxy config in `frontend/vite.config.ts`
 
 ## Development Guidelines
 
-For detailed coding conventions and development practices, please refer to **[AGENTS.md](./AGENTS.md)** which includes:
-- Code style guidelines (imports, components, naming conventions)
-- TypeScript patterns and React hooks usage
-- Error handling and logging standards
-- Security best practices
-- Testing and build commands
-
-## Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-Please ensure your code passes linting:
-```bash
-cd frontend && npm run lint
-```
+See **[AGENTS.md](./AGENTS.md)** for coding conventions, TypeScript patterns, naming, error handling, security, and commands.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support, please open an issue in the GitHub repository or contact the development team.
+MIT
 
 ---
 

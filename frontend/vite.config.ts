@@ -12,15 +12,13 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://backend.palsocool.win',
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: true,
         rewrite: (path) => path
       },
       '/uploads': {
-        target: 'https://backend.palsocool.win',
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: true,
         rewrite: (path) => path
       }
     }

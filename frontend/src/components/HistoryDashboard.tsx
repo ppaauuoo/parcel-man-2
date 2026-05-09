@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Parcel } from '../types';
 import { parcelsAPI } from '../utils/api';
+import { preload } from '../utils/preload';
 import ImageModal from './ImageModal';
 
 interface StaffDeliveryOutProps {
@@ -9,6 +11,7 @@ interface StaffDeliveryOutProps {
 }
 
 const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -23,8 +26,14 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
   });
   const [selectedImage, setSelectedImage] = useState<{url: string; title: string} | null>(null);
   const filterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const immediateFetchRef = useRef(false);
 
   useEffect(() => {
+    if (immediateFetchRef.current) {
+      immediateFetchRef.current = false;
+      loadParcels();
+      return;
+    }
     if (filterTimer.current) clearTimeout(filterTimer.current);
     filterTimer.current = setTimeout(() => {
       loadParcels();
@@ -62,11 +71,12 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
   };
 
   const handleSearch = () => {
+    immediateFetchRef.current = true;
     setPagination(prev => ({ ...prev, offset: 0 }));
-    loadParcels();
   };
 
   const handleResetFilters = () => {
+    immediateFetchRef.current = true;
     setFilters({
       room_number: '',
       start_date: '',
@@ -147,13 +157,15 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
           <div className="flex space-x-2 sm:space-x-6 lg:space-x-8 overflow-x-auto">
             <button
               className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-              onClick={() => window.location.href = '/receive-parcel'}
+              onMouseEnter={preload.staffReceiveParcel}
+              onClick={() => navigate('/receive-parcel')}
             >
               รับพัสดุ
             </button>
             <button
               className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-              onClick={() => window.location.href = '/delivery-out'}
+              onMouseEnter={preload.staffDeliveryOut}
+              onClick={() => navigate('/delivery-out')}
             >
               ส่งมอบพัสดุ
             </button>
@@ -164,7 +176,8 @@ const HistoryDashboard: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
             </button>
             <button
               className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-              onClick={() => window.location.href = '/users'}
+              onMouseEnter={preload.userList}
+              onClick={() => navigate('/users')}
             >
               จัดการผู้ใช้
             </button>

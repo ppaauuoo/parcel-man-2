@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { usersAPI } from '../utils/api';
+import { preload } from '../utils/preload';
 import AddResidentModal from './AddResidentModal';
 
 interface UserListProps {
@@ -9,6 +11,7 @@ interface UserListProps {
 }
 
 const UserList: React.FC<UserListProps> = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const [residents, setResidents] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,19 +80,22 @@ const UserList: React.FC<UserListProps> = ({ user, onLogout }) => {
           <div className="flex space-x-2 sm:space-x-6 lg:space-x-8 overflow-x-auto">
             <button
               className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-              onClick={() => window.location.href = '/receive-parcel'}
+              onMouseEnter={preload.staffReceiveParcel}
+              onClick={() => navigate('/receive-parcel')}
             >
               รับพัสดุ
             </button>
             <button
               className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-              onClick={() => window.location.href = '/delivery-out'}
+              onMouseEnter={preload.staffDeliveryOut}
+              onClick={() => navigate('/delivery-out')}
             >
               ส่งมอบพัสดุ
             </button>
             <button
               className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-              onClick={() => window.location.href = '/history'}
+              onMouseEnter={preload.historyDashboard}
+              onClick={() => navigate('/history')}
             >
               ประวัติ
             </button>

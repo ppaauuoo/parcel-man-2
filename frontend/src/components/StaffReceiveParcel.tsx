@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, CreateParcelRequest } from '../types';
 import { parcelsAPI, usersAPI } from '../utils/api';
+import { preload } from '../utils/preload';
 import CameraCapture from './CameraCapture';
 
 interface StaffReceiveParcelProps {
@@ -9,6 +11,7 @@ interface StaffReceiveParcelProps {
 }
 
 const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<CreateParcelRequest>({
     tracking_number: '',
     room_number: '',
@@ -173,13 +176,15 @@ const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout 
             </button>
             <button
               className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-              onClick={() => window.location.href = '/delivery-out'}
+              onMouseEnter={preload.staffDeliveryOut}
+              onClick={() => navigate('/delivery-out')}
             >
               ส่งมอบพัสดุ
             </button>
             <button
               className="text-blue-100 py-3 px-2 sm:px-3 lg:px-4 rounded-t-md font-medium text-xs sm:text-sm hover:text-white whitespace-nowrap flex-shrink-0"
-              onClick={() => window.location.href = '/history'}
+              onMouseEnter={preload.historyDashboard}
+              onClick={() => navigate('/history')}
             >
               ประวัติ
             </button>

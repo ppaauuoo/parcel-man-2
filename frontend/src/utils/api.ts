@@ -2,6 +2,21 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { LoginRequest, LoginResponse, User, Parcel, CreateParcelRequest, RegisterResidentRequest, RegisterResidentResponse } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const CACHE_TTL = 30000; // 30s cache for GET requests
+
+// Simple in-memory cache
+type CacheEntry = { data: unknown; timestamp: number };
+const cache = new Map<string, CacheEntry>();
+
+const getCacheKey = (config: { method?: string; url?: string; params?: unknown }): string => {
+  return `${config.method || 'GET'}:${config.url || ''}`;
+};
+
+const isCacheValid = (entry: CacheEntry): boolean => {
+  return Date.now() - entry.timestamp < CACHE_TTL;
+};
+
+const clearCache = (): void => cache.clear();
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -25,14 +40,18 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
+// Response interceptor: cache GET + handle 401
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    // Cache GET responses for snappy back-navigation
+    if (response.config.method === 'get') {
+      const key = getCacheKey(response.config);
+      cache.set(key, { data: response.data, timestamp: Date.now() });
+    }
     return response;
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -40,6 +59,17 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Wrapper: check cache before GET requests
+const cachedGet = async <T>(url: string, config?: Record<string, unknown>): Promise<T> => {
+  const key = getCacheKey({ method: 'get', url, ...config });
+  const cached = cache.get(key);
+  if (cached && isCacheValid(cached)) {
+    return cached.data as T;
+  }
+  const response = await api.get<T>(url, config);
+  return response.data;
+};
 
 // Auth API
 export const authAPI = {
@@ -56,22 +86,22 @@ export const authAPI = {
 // Users API
 export const usersAPI = {
   getResidents: async (): Promise<{ success: boolean; residents: User[] }> => {
-    const response = await api.get('/users/residents');
-    return response.data;
+    return cachedGet('/users/residents');
   },
   getProfile: async (): Promise<{ success: boolean; user: User }> => {
-    const response = await api.get('/users/profile');
-    return response.data;
+    return cachedGet('/users/profile');
   },
   registerResident: async (data: RegisterResidentRequest): Promise<RegisterResidentResponse> => {
+    clearCache(); // Invalidate cache after mutation
     const response = await api.post('/users/register', data);
     return response.data;
   },
 };
 
-// Parcels API
+// Parcels API — GET uses cache, mutating ops clear cache
 export const parcelsAPI = {
   createParcel: async (data: CreateParcelRequest): Promise<{ success: boolean; message: string; parcel: Parcel }> => {
+    clearCache();
     const response = await api.post('/parcels', data);
     return response.data;
   },
@@ -80,10 +110,10 @@ export const parcelsAPI = {
     if (limit !== undefined) params.append('limit', limit.toString());
     if (offset !== undefined) params.append('offset', offset.toString());
     const query = params.toString() ? `?${params}` : '';
-    const response = await api.get(`/parcels/resident/${residentId}${query}`);
-    return response.data;
+    return cachedGet(`/parcels/resident/${residentId}${query}`);
   },
   collectParcel: async (parcelId: number, staffId: number, evidencePhotoPath?: string): Promise<{ success: boolean; message: string }> => {
+    clearCache();
     const response = await api.put(`/parcels/${parcelId}/collect`, { 
       staff_id: staffId,
       photo_out_path: evidencePhotoPath
@@ -109,18 +139,16 @@ export const parcelsAPI = {
     if (filters?.limit) params.append('limit', filters.limit.toString());
     if (filters?.offset) params.append('offset', filters.offset.toString());
 
-    const response = await api.get(`/parcels/history?${params}`);
-    return response.data;
+    return cachedGet(`/parcels/history?${params}`);
   },
   getQRCode: async (parcelId: number): Promise<{ success: boolean; qrCode: string; parcelId: number }> => {
-    const response = await api.get(`/parcels/${parcelId}/qrcode`);
-    return response.data;
+    return cachedGet(`/parcels/${parcelId}/qrcode`);
   },
   getParcelById: async (parcelId: number): Promise<{ success: boolean; parcel: Parcel; message?: string }> => {
-    const response = await api.get(`/parcels/${parcelId}`);
-    return response.data;
+    return cachedGet(`/parcels/${parcelId}`);
   },
   updateParcelSendout: async (parcelId: number, sendoutAt: string): Promise<{ success: boolean; message: string }> => {
+    clearCache();
     const response = await api.put('/parcels/update-parcel', {
       parcel_id: parcelId,
       sendout_at: sendoutAt
@@ -128,6 +156,7 @@ export const parcelsAPI = {
     return response.data;
   },
   returnParcel: async (parcelId: number): Promise<{ success: boolean; message: string }> => {
+    clearCache();
     const response = await api.put(`/parcels/${parcelId}/return`);
     return response.data;
   },

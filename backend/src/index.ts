@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import sharp from 'sharp';
 import { open, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { setupDatabaseSchema } from './db/schema';
@@ -65,7 +66,15 @@ const upload = multer({
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use('/uploads', express.static(uploadsDir));
+// Cache uploaded images for 1 day, immutable for content-hashed assets
+app.use('/uploads', express.static(uploadsDir, {
+  maxAge: '1d',
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg') || filePath.endsWith('.png') || filePath.endsWith('.webp')) {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
 
 // Database
 let db: Database;
@@ -462,12 +471,17 @@ app.post('/api/upload/base64-photo', authenticateToken, requireRole('staff'), as
       });
     }
 
-    // Write file (async — don't block event loop)
+    // Compress and resize image via sharp
     const filePath = path.join(parcelDir, filename);
     try {
-      await fs.promises.writeFile(filePath, buffer);
+      await sharp(buffer)
+        .rotate() // auto-rotate based on EXIF
+        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80, mozjpeg: true })
+        .toFile(filePath);
       const stats = await fs.promises.stat(filePath);
-      console.log(`✅ Photo saved successfully: ${stats.size} bytes`);
+      const savedPct = ((1 - stats.size / buffer.length) * 100).toFixed(1);
+      console.log(`✅ Photo saved: ${stats.size} bytes (compressed ${savedPct}%)`);
     } catch (writeError) {
       console.error('❌ File write failed:', writeError);
       return res.status(500).json({

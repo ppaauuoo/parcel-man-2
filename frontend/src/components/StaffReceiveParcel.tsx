@@ -125,6 +125,7 @@ const StaffReceiveParcel: React.FC<StaffReceiveParcelProps> = ({ user, onLogout 
           tracking_number: '',
           room_number: '',
           carrier_name: '',
+          resident_id: undefined,
         });
         setParcelPhoto(null);
       } else {

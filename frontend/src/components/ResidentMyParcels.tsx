@@ -119,13 +119,15 @@ const ResidentMyParcels: React.FC<ResidentMyParcelsProps> = ({ user, onLogout })
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'pending' 
-      ? 'bg-yellow-100 text-yellow-800' 
-      : 'bg-green-100 text-green-800';
+    if (status === 'pending') return 'bg-yellow-100 text-yellow-800';
+    if (status === 'returned') return 'bg-red-100 text-red-800';
+    return 'bg-green-100 text-green-800';
   };
 
   const getStatusText = (status: string) => {
-    return status === 'pending' ? 'รอรับ' : 'รับแล้ว';
+    if (status === 'pending') return 'รอรับ';
+    if (status === 'returned') return 'ส่งคืนแล้ว';
+    return 'รับแล้ว';
   };
 
   if (loading) {

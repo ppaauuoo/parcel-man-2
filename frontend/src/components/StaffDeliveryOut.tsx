@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { User, Parcel } from '../types';
 import { parcelsAPI } from '../utils/api';
 import { preload } from '../utils/preload';
@@ -21,7 +21,8 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
   const [evidencePhoto, setEvidencePhoto] = useState<string | null>(null);
 
   // Refs to avoid closure issues and track scanner state
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerContainerRef = useRef<HTMLDivElement>(null);
   const isSubmittingRef = useRef(false);
   const lastScannedIdRef = useRef<number | null>(null);
   const lastScanTimeRef = useRef<number>(0);
@@ -47,30 +48,19 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
     // Stop existing scanner first
     if (scannerRef.current) {
       console.log('🛑 Stopping existing scanner before starting new one');
-      try {
-        scannerRef.current.clear().catch((err) => {
-          console.log('Scanner clear error (expected if already cleared):', err);
-        });
-      } catch (e) {
-        console.log('Scanner already cleared');
-      }
+      stopScanner();
     }
 
     console.log('▶️ Starting new QR scanner');
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
+    const scanner = new Html5Qrcode('qr-reader-video');
+    scannerRef.current = scanner;
+
+    scanner.start(
+      { facingMode: 'environment' },
       {
         fps: 10,
         qrbox: { width: 250, height: 250 },
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
       },
-      false
-    );
-    
-    // Store scanner reference
-    scannerRef.current = scanner;
-
-    scanner.render(
       (decodedText) => {
         // Use ref instead of state to avoid closure issues
         if (isSubmittingRef.current) {
@@ -123,17 +113,11 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
           setMessage({ type: 'error', text: 'QR Code ไม่ถูกต้อง: กรุณาสแกน QR Code สำหรับรับพัสดุ' });
         }
       },
-      (error) => {
-        // Filter out common scanning errors that are just the scanner looking for QR codes
-        // Only show errors that are actual problems
-        const errorMessage = error?.toString() || '';
-        
-        // NotFoundException is normal when scanner doesn't see a QR code yet
-        if (!errorMessage.includes('NotFoundException')) {
-          console.error('QR Scanner error:', error);
-          
-          // Only set message for critical errors
-          if (errorMessage.includes('NotAllowedError') || errorMessage.includes('NotFoundError')) {
+      (errorMessage) => {
+        // Filter out common scanning errors
+        if (!errorMessage?.includes('NotFoundException')) {
+          console.error('QR Scanner error:', errorMessage);
+          if (errorMessage?.includes('NotAllowedError') || errorMessage?.includes('NotFoundError')) {
             setMessage({ 
               type: 'error', 
               text: 'ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง' 
@@ -141,29 +125,21 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
           }
         }
       }
-    );
+    ).catch((err) => {
+      console.error('Failed to start scanner:', err);
+      setMessage({ type: 'error', text: 'ไม่สามารถเปิดกล้องได้ กรุณาลองใหม่' });
+    });
   };
 
-  const stopScanner = () => {
+  const stopScanner = async () => {
     console.log('⏹️ Stopping scanner');
     try {
       if (scannerRef.current) {
-        scannerRef.current.clear()
-          .then(() => {
-            console.log('✅ Scanner stopped and cleared');
-            scannerRef.current = null;
-          })
-          .catch((error) => {
-            console.log('Scanner cleanup error (may be already cleared):', error);
-            scannerRef.current = null;
-          });
+        await scannerRef.current.stop().catch(() => {});
+        scannerRef.current = null;
       }
-      
-      // Also clear the DOM container as backup
-      const scannerContainer = document.getElementById('qr-reader');
-      if (scannerContainer) {
-        scannerContainer.innerHTML = '';
-      }
+      const container = document.getElementById('qr-reader-video');
+      if (container) container.innerHTML = '';
     } catch (error) {
       console.error('Error stopping scanner:', error);
       scannerRef.current = null;
@@ -416,7 +392,26 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
                   ให้ผู้อาศัยแสดง QR Code จากแอปพลิเคชันเพื่อสแกน
                 </p>
                 <button
-                  onClick={() => setIsScanning(!isScanning)}
+                  onClick={() => {
+                    if (!isScanning) {
+                      // Request camera permission immediately, before scanner init
+                      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                        .then((stream) => {
+                          // Stop the temporary stream — scanner will get its own
+                          stream.getTracks().forEach(track => track.stop());
+                          setIsScanning(true);
+                        })
+                        .catch((err) => {
+                          console.error('Camera permission denied:', err);
+                          setMessage({
+                            type: 'error',
+                            text: 'ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง'
+                          });
+                        });
+                    } else {
+                      setIsScanning(false);
+                    }
+                  }}
                   className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
                     isScanning 
                       ? 'bg-red-600 hover:bg-red-700' 
@@ -443,7 +438,61 @@ const StaffDeliveryOut: React.FC<StaffDeliveryOutProps> = ({ user, onLogout }) =
               </div>
 
               {/* QR Scanner */}
-              <div id="qr-reader" className="w-full"></div>
+              {isScanning && (
+                <div className="relative w-full max-w-md mx-auto">
+                  {/* Scanner frame */}
+                  <div className="relative bg-black rounded-xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
+                    <div id="qr-reader-video" ref={scannerContainerRef} className="w-full h-full"></div>
+
+                    {/* Dimmed overlay with clear scan area */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      {/* Scan window */}
+                      <div className="absolute inset-x-[12%] inset-y-[18%] border-2 border-blue-400/70 rounded-lg">
+                        {/* Corner brackets */}
+                        <div className="absolute -top-0.5 -left-0.5 w-5 h-5 border-t-[3px] border-l-[3px] border-blue-400 rounded-tl"></div>
+                        <div className="absolute -top-0.5 -right-0.5 w-5 h-5 border-t-[3px] border-r-[3px] border-blue-400 rounded-tr"></div>
+                        <div className="absolute -bottom-0.5 -left-0.5 w-5 h-5 border-b-[3px] border-l-[3px] border-blue-400 rounded-bl"></div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 border-b-[3px] border-r-[3px] border-blue-400 rounded-br"></div>
+
+                        {/* Scanning line animation */}
+                        <div className="absolute left-0 right-0 h-[2px] bg-blue-400 shadow-lg shadow-blue-400/50"
+                             style={{
+                               animation: 'scan-line 2s ease-in-out infinite',
+                               top: '0%'
+                             }}>
+                        </div>
+                      </div>
+
+                      {/* Dim surrounding area */}
+                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <defs>
+                          <mask id="scanMask">
+                            <rect width="100" height="100" fill="white" />
+                            <rect x="12" y="18" width="76" height="64" rx="2" fill="black" />
+                          </mask>
+                        </defs>
+                        <rect width="100" height="100" fill="rgba(0,0,0,0.45)" mask="url(#scanMask)" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <p className="text-center text-xs text-gray-500 mt-3">
+                    วาง QR Code ในกรอบสี่เหลี่ยมเพื่อสแกน
+                  </p>
+
+                  <style>{`
+                    @keyframes scan-line {
+                      0%, 100% { top: 0%; }
+                      50% { top: calc(100% - 2px); }
+                    }
+                    #qr-reader-video video {
+                      width: 100% !important;
+                      height: 100% !important;
+                      object-fit: cover !important;
+                    }
+                  `}</style>
+                </div>
+              )}
             </div>
           ) : (
             // Parcel Details Section

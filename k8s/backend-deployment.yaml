@@ -23,8 +23,8 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: backend
-          image: icondo-backend:latest
-          imagePullPolicy: IfNotPresent
+          image: ppaaul/icondo-backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
               name: http
@@ -61,11 +61,11 @@ spec:
             failureThreshold: 2
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
-            limits:
-              cpu: "500m"
+              cpu: "250m"
               memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
       volumes:
         - name: data
           persistentVolumeClaim:

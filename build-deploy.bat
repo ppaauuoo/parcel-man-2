@@ -1,39 +1,23 @@
 @echo off
 REM ============================================================
-REM build-deploy.bat — iCondo Docker build + K3s deploy
+REM build-deploy.bat — iCondo Docker build + push to Docker Hub
 REM
 REM Usage:
-REM   build-deploy.bat              — build, import to containerd, deploy
-REM   build-deploy.bat push         — build, push to registry, deploy
-REM   build-deploy.bat <registry>   — build, tag & push, deploy
-REM   build-deploy.bat skipdeploy   — build only
+REM   build-deploy.bat              — build, push to ppaaul/*, deploy
+REM   build-deploy.bat skipdeploy   — build & push only
 REM
-REM Prerequisites: docker, kubectl, k3s (or kubectl standalone)
+REM Prerequisites: docker, kubectl
 REM ============================================================
 
 setlocal enabledelayedexpansion
 
-set REGISTRY=%1
 set BUILD_ONLY=0
-set DO_PUSH=0
-set DO_IMPORT=0
+set DOCKER_USER=ppaaul
+
+if "%1"=="skipdeploy" set BUILD_ONLY=1
 
 REM API URL for frontend — default to relative path (nginx proxy)
 if "%VITE_API_URL%"=="" set VITE_API_URL=/api
-
-if "%REGISTRY%"=="skipdeploy" (
-    set BUILD_ONLY=1
-    set REGISTRY=
-)
-
-if "%REGISTRY%"=="push" (
-    set DO_PUSH=1
-    set REGISTRY=localhost
-)
-
-if "%REGISTRY%"=="" (
-    set DO_IMPORT=1
-)
 
 echo ============================================
 echo 🔨 iCondo — Build ^& Deploy
@@ -42,7 +26,7 @@ echo.
 
 REM ---- Step 1: Build backend ----
 echo [1/4] 🏗️  Building backend image...
-docker build -t icondo-backend:latest -f Dockerfile.backend .
+docker build -t %DOCKER_USER%/icondo-backend:latest -f Dockerfile.backend .
 if %ERRORLEVEL% neq 0 (
     echo ❌ Backend build failed
     exit /b 1
@@ -52,7 +36,7 @@ echo.
 
 REM ---- Step 2: Build frontend ----
 echo [2/4] 🏗️  Building frontend image...
-docker build --build-arg VITE_API_URL=%VITE_API_URL% -t icondo-frontend:latest -f Dockerfile.frontend .
+docker build --build-arg VITE_API_URL=%VITE_API_URL% -t %DOCKER_USER%/icondo-frontend:latest -f Dockerfile.frontend .
 if %ERRORLEVEL% neq 0 (
     echo ❌ Frontend build failed
     exit /b 1
@@ -60,78 +44,24 @@ if %ERRORLEVEL% neq 0 (
 echo ✅ Frontend image built
 echo.
 
-REM ---- Step 3a: Import into containerd (single-node, no registry) ----
-if "%DO_IMPORT%"=="1" (
-    echo [3/4] 📥 Importing images into K3s containerd...
-    
-    where /q k3s
-    if !ERRORLEVEL! equ 0 (
-        docker save icondo-backend:latest | k3s ctr images import -
-        if !ERRORLEVEL! neq 0 (
-            echo ⚠️  Backend import failed — pods may use ImagePullBackOff
-            echo    Try: k3s ctr images import
-        ) else (
-            echo ✅ Backend imported to containerd
-        )
+REM ---- Step 3: Push to Docker Hub ----
+echo [3/4] ☁️  Pushing images to Docker Hub (%DOCKER_USER%/*)...
 
-        docker save icondo-frontend:latest | k3s ctr images import -
-        if !ERRORLEVEL! neq 0 (
-            echo ⚠️  Frontend import failed
-        ) else (
-            echo ✅ Frontend imported to containerd
-        )
-    ) else (
-        echo ⚠️  k3s not found — assuming Docker runtime or external cluster
-        echo    Setting imagePullPolicy: Never so K3s uses Docker images...
-    )
-    echo.
-    goto deploy
-)
-
-REM ---- Step 3b: Push to registry ----
-if "%DO_PUSH%"=="1" (
-    echo [3/4] ☁️  Pushing images to %REGISTRY%...
-
-    docker tag icondo-backend:latest %REGISTRY%/icondo-backend:latest
-    docker push %REGISTRY%/icondo-backend:latest
-    if !ERRORLEVEL! neq 0 (
-        echo ❌ Backend push failed
-        exit /b 1
-    )
-
-    docker tag icondo-frontend:latest %REGISTRY%/icondo-frontend:latest
-    docker push %REGISTRY%/icondo-frontend:latest
-    if !ERRORLEVEL! neq 0 (
-        echo ❌ Frontend push failed
-        exit /b 1
-    )
-    echo ✅ Images pushed to %REGISTRY%
-    echo.
-    goto deploy
-)
-
-REM ---- Step 3c: Push with custom registry ----
-echo [3/4] ☁️  Pushing images to %REGISTRY%...
-
-docker tag icondo-backend:latest %REGISTRY%/icondo-backend:latest
-docker push %REGISTRY%/icondo-backend:latest
+docker push %DOCKER_USER%/icondo-backend:latest
 if %ERRORLEVEL% neq 0 (
-    echo ❌ Backend push failed
+    echo ❌ Backend push failed — did you run 'docker login'?
     exit /b 1
 )
 
-docker tag icondo-frontend:latest %REGISTRY%/icondo-frontend:latest
-docker push %REGISTRY%/icondo-frontend:latest
+docker push %DOCKER_USER%/icondo-frontend:latest
 if %ERRORLEVEL% neq 0 (
     echo ❌ Frontend push failed
     exit /b 1
 )
-echo ✅ Images pushed to %REGISTRY%
+echo ✅ Images pushed to Docker Hub
 echo.
 
-:deploy
-
-REM ---- Step 4: Deploy to K3s ----
+REM ---- Step 4: Deploy ----
 if "%BUILD_ONLY%"=="1" (
     echo [4/4] ⏭️  Skipping deploy (build-only mode)
     echo.

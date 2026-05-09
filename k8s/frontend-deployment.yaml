@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: icondo-frontend:latest
-          imagePullPolicy: IfNotPresent
+          image: ppaaul/icondo-frontend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
               name: http

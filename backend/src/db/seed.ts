@@ -1,14 +1,17 @@
+import path from 'path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import { setupDatabaseSchema } from './schema';
 import bcrypt from 'bcrypt';
+
+const DATA_DIR = process.env.DATA_DIR || process.cwd();
 
 const seedData = async () => {
   console.log('🌱 Seeding database with initial data...');
   
   try {
     const db = await open({
-      filename: './icondo.db',
+      filename: path.join(DATA_DIR, 'icondo.db'),
       driver: sqlite3.Database
     });
     
@@ -84,6 +87,7 @@ const seedData = async () => {
 };
 
 // Run seeding if this script is executed directly
-if (import.meta.main) {
+const isMainModule = process.argv[1] && (process.argv[1].includes('seed.ts') || process.argv[1].includes('seed'));
+if (isMainModule) {
   seedData();
 }

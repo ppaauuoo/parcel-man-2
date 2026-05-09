@@ -1,0 +1,28 @@
+# Kustomize — apply everything with one command:
+#   kubectl apply -k k8s/
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: icondo
+
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - secret.yaml
+  - backend-deployment.yaml
+  - backend-service.yaml
+  - frontend-deployment.yaml
+  - frontend-service.yaml
+  - ingress.yaml
+
+# Override the domain per-environment using patches
+patches:
+  # Example: patch the ingress host for staging vs production
+  # - target:
+  #     kind: Ingress
+  #     name: icondo
+  #   patch: |-
+  #     - op: replace
+  #       path: /spec/rules/0/host
+  #       value: icondo.staging.example.com

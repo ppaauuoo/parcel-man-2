@@ -1,0 +1,54 @@
+# Ingress for iCondo
+# Assumes Traefik (K3s default) or ingress-nginx
+# Path-based routing:
+#   /api/*     → backend service
+#   /uploads/* → backend service
+#   /*         → frontend service (SPA)
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: icondo
+  namespace: icondo
+  annotations:
+    # Traefik annotations (K3s default)
+    # Remove/change these if using a different ingress controller
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "false"
+
+    # Common annotations (uncomment as needed)
+    # nginx.ingress.kubernetes.io/proxy-body-size: 10m
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  # tls:                             # Uncomment for HTTPS
+  #   - hosts:
+  #       - icondo.example.com
+  #     secretName: icondo-tls
+  rules:
+    - host: icondo.palsocool.win
+      http:
+        paths:
+          # API routes → backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: icondo-backend
+                port:
+                  number: 3000
+          # Uploaded files → backend
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: icondo-backend
+                port:
+                  number: 3000
+          # Everything else → frontend SPA
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: icondo-frontend
+                port:
+                  number: 80

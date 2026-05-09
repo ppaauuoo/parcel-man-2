@@ -1,0 +1,27 @@
+# ============================================================
+# Dockerfile — iCondo Backend (Express + SQLite)
+# Runs via tsx to handle extensionless ESM imports
+# ============================================================
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install production dependencies (tsx is a dependency, not devDependency)
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci --omit=dev
+
+# Copy source code
+COPY backend/ ./
+
+# Create data directories (will be mounted as volumes)
+RUN mkdir -p /data/uploads/parcels
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+
+EXPOSE 3000
+
+# tsx handles ESM imports without .js extensions
+CMD ["npx", "tsx", "src/index.ts"]

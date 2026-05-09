@@ -15,9 +15,10 @@ import { hashPassword } from './utils/auth';
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'icondo-secret-key-change-in-production';
+const DATA_DIR = process.env.DATA_DIR || process.cwd();
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(process.cwd(), 'uploads');
+const uploadsDir = path.join(DATA_DIR, 'uploads');
 const parcelsUploadDir = path.join(uploadsDir, 'parcels');
 
 if (!fs.existsSync(uploadsDir)) {
@@ -73,7 +74,7 @@ let db: Database;
 const initializeDatabase = async () => {
   try {
     db = await open({
-      filename: './icondo.db',
+      filename: path.join(DATA_DIR, 'icondo.db'),
       driver: sqlite3.Database
     });
     
@@ -117,6 +118,15 @@ const requireRole = (role: 'staff' | 'resident') => {
     next();
   };
 };
+
+// Health check (no auth)
+app.get('/api/health', (_req: express.Request, res: express.Response) => {
+  return res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
 
 // Routes
 // Register resident (public - no auth required)
@@ -856,11 +866,34 @@ const startServer = async () => {
 
   const HOST = '0.0.0.0';
 
-  app.listen(PORT, HOST, () => {
+  const server = app.listen(PORT, HOST, () => {
     console.log('🚀 Express server is running at http://' + HOST + ':' + PORT);
     console.log('📦 iCondo Backend API is ready!');
     console.log('🌐 Accessible from other devices on your network!');
   });
+
+  // Graceful shutdown
+  const shutdown = (signal: string) => {
+    console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
+    server.close(async () => {
+      console.log('🔌 HTTP server closed');
+      if (db) {
+        await db.close();
+        console.log('🗄️ Database connection closed');
+      }
+      console.log('👋 Goodbye!');
+      process.exit(0);
+    });
+
+    // Force exit after 10s
+    setTimeout(() => {
+      console.error('💥 Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 };
 
 startServer().catch(console.error);

@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: icondo-backend
+  namespace: icondo
+  labels:
+    app: icondo
+    tier: backend
+spec:
+  replicas: 1                # SQLite = single replica only
+  strategy:
+    type: Recreate            # Recreate (not RollingUpdate) to avoid split-brain with SQLite
+  selector:
+    matchLabels:
+      app: icondo
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: icondo
+        tier: backend
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: backend
+          image: icondo-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: PORT
+              value: "3000"
+            - name: DATA_DIR
+              value: /data
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: icondo-secret
+                  key: jwt-secret
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          # Liveness probe — restart if unresponsive
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Readiness probe — don't send traffic until ready
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: icondo-data

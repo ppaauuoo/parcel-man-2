@@ -1,0 +1,16 @@
+# PersistentVolumeClaim for SQLite database + uploaded photos
+# ReadWriteOnce = single pod mount (SQLite cannot do concurrent writes)
+# Adjust storage class and size to match your cluster
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: icondo-data
+  namespace: icondo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # storageClassName: local-path  # K3s default; uncomment if needed

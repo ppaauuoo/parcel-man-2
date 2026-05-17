@@ -11,6 +11,7 @@ const ResidentMyParcels = lazy(preload.residentMyParcels);
 const StaffDeliveryOut = lazy(preload.staffDeliveryOut);
 const HistoryDashboard = lazy(preload.historyDashboard);
 const UserList = lazy(preload.userList);
+const DBViewer = lazy(preload.dbViewer);
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -104,6 +105,10 @@ const App: React.FC = () => {
             <Route
               path="/users"
               element={<UserList user={user} onLogout={handleLogout} />}
+            />
+            <Route
+              path="/db-viewer"
+              element={<DBViewer user={user} onLogout={handleLogout} />}
             />
           </>
         )}

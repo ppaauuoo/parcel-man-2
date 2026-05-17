@@ -172,4 +172,40 @@ export const parcelsAPI = {
   },
 };
 
+// DB Viewer API — staff only, no caching (live data)
+export const dbViewerAPI = {
+  getTables: async (): Promise<{ success: boolean; tables: { name: string; rowCount: number }[] }> => {
+    const response = await api.get('/db-viewer/tables');
+    return response.data;
+  },
+  getTableDetail: async (name: string, limit?: number, offset?: number): Promise<{
+    success: boolean;
+    table: string;
+    schema: { cid: number; name: string; type: string; notnull: number; dflt_value: string | null; pk: number }[];
+    indexes: { seq: number; name: string; unique: number; origin: string; partial: number }[];
+    foreignKeys: { id: number; seq: number; table: string; from: string; to: string; on_update: string; on_delete: string; match: string }[];
+    total: number;
+    rows: Record<string, unknown>[];
+    pagination: { limit: number; offset: number };
+  }> => {
+    const params = new URLSearchParams();
+    if (limit !== undefined) params.append('limit', limit.toString());
+    if (offset !== undefined) params.append('offset', offset.toString());
+    const qs = params.toString() ? `?${params}` : '';
+    const response = await api.get(`/db-viewer/tables/${encodeURIComponent(name)}${qs}`);
+    return response.data;
+  },
+  runQuery: async (sql: string): Promise<{
+    success: boolean;
+    sql?: string;
+    columns?: string[];
+    rows?: Record<string, unknown>[];
+    rowCount?: number;
+    error?: string;
+  }> => {
+    const response = await api.post('/db-viewer/query', { sql });
+    return response.data;
+  },
+};
+
 export default api;

@@ -9,4 +9,5 @@ export const preload = {
   historyDashboard: () => import('../components/HistoryDashboard'),
   userList: () => import('../components/UserList'),
   residentMyParcels: () => import('../components/ResidentMyParcels'),
+  dbViewer: () => import('../components/DBViewer'),
 };

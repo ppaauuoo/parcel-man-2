@@ -128,6 +128,96 @@ const requireRole = (role: 'staff' | 'resident') => {
   };
 };
 
+// ─── DB Viewer (staff only) ───
+app.get('/api/db-viewer/tables', authenticateToken, requireRole('staff'), async (_req: express.Request, res: express.Response) => {
+  try {
+    const tables = await db.all(`
+      SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name
+    `);
+
+    const result = [];
+    for (const t of tables) {
+      const count = await db.get(`SELECT COUNT(*) as count FROM "${t.name}"`);
+      result.push({ name: t.name, rowCount: count.count });
+    }
+
+    return res.json({ success: true, tables: result });
+  } catch (error) {
+    console.error('DB viewer list tables error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/db-viewer/tables/:name', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
+  try {
+    const { name } = req.params;
+    const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    // Validate table name (prevent SQL injection)
+    const tableExists = await db.get(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name = ?`,
+      name
+    );
+    if (!tableExists) {
+      return res.status(404).json({ error: 'Table not found' });
+    }
+
+    const schema = await db.all(`PRAGMA table_info("${name}")`);
+    const indexList = await db.all(`PRAGMA index_list("${name}")`);
+    const foreignKeys = await db.all(`PRAGMA foreign_key_list("${name}")`);
+
+    const countResult = await db.get(`SELECT COUNT(*) as total FROM "${name}"`);
+    const rows = await db.all(`SELECT * FROM "${name}" LIMIT ? OFFSET ?`, [limit, offset]);
+
+    return res.json({
+      success: true,
+      table: name,
+      schema,
+      indexes: indexList,
+      foreignKeys,
+      total: countResult.total,
+      rows,
+      pagination: { limit, offset }
+    });
+  } catch (error) {
+    console.error('DB viewer table detail error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/db-viewer/query', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
+  try {
+    const { sql } = req.body;
+
+    if (!sql || typeof sql !== 'string') {
+      return res.status(400).json({ error: 'Missing required field: sql' });
+    }
+
+    const trimmed = sql.trim().toUpperCase();
+    if (!trimmed.startsWith('SELECT') && !trimmed.startsWith('PRAGMA')) {
+      return res.status(400).json({ error: 'Only SELECT and PRAGMA queries are allowed' });
+    }
+
+    const rows = await db.all(sql);
+    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+    return res.json({
+      success: true,
+      sql,
+      columns,
+      rows,
+      rowCount: rows.length
+    });
+  } catch (error: any) {
+    return res.json({
+      success: false,
+      sql: req.body.sql,
+      error: error.message || 'Query execution failed'
+    });
+  }
+});
+
 // Health check (no auth)
 app.get('/api/health', (_req: express.Request, res: express.Response) => {
   return res.json({

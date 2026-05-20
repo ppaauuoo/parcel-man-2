@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { LoginRequest, LoginResponse, User, Parcel, CreateParcelRequest, RegisterResidentRequest, RegisterResidentResponse } from '../types';
+import { LoginRequest, LoginResponse, User, Parcel, CreateParcelRequest, RegisterResidentRequest, RegisterResidentResponse, UpdateResidentRequest } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const CACHE_TTL = 30000; // 30s cache for GET requests
@@ -94,6 +94,16 @@ export const usersAPI = {
   registerResident: async (data: RegisterResidentRequest): Promise<RegisterResidentResponse> => {
     clearCache(); // Invalidate cache after mutation
     const response = await api.post('/users/register', data);
+    return response.data;
+  },
+  updateResident: async (id: number, data: UpdateResidentRequest): Promise<{ success: boolean; message: string; user: User }> => {
+    clearCache();
+    const response = await api.put(`/users/${id}`, data);
+    return response.data;
+  },
+  deleteResident: async (id: number): Promise<{ success: boolean; message: string }> => {
+    clearCache();
+    const response = await api.delete(`/users/${id}`);
     return response.data;
   },
 };

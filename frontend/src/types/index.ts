@@ -58,3 +58,10 @@ export interface RegisterResidentResponse {
   message: string;
   user: User;
 }
+
+export interface UpdateResidentRequest {
+  username: string;
+  room_number: string;
+  phone_number: string;
+  password?: string;
+}

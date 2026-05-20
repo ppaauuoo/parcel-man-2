@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '../types';
+import { User, UpdateResidentRequest } from '../types';
 import { usersAPI } from '../utils/api';
 import { preload } from '../utils/preload';
 import AddResidentModal from './AddResidentModal';
@@ -16,6 +16,15 @@ const UserList: React.FC<UserListProps> = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddResidentModal, setShowAddResidentModal] = useState(false);
+  const [editingResident, setEditingResident] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState<UpdateResidentRequest>({
+    username: '',
+    room_number: '',
+    phone_number: '',
+    password: '',
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -41,6 +50,67 @@ const UserList: React.FC<UserListProps> = ({ user, onLogout }) => {
     loadResidents();
     setMessage({ type: 'success', text: 'เพิ่มผู้อาศัยเรียบร้อย' });
     setTimeout(() => setMessage(null), 3000);
+  };
+
+  const handleEdit = (resident: User) => {
+    setEditingResident(resident);
+    setEditForm({
+      username: resident.username,
+      room_number: resident.room_number || '',
+      phone_number: resident.phone_number,
+      password: '',
+    });
+  };
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingResident) return;
+    setEditLoading(true);
+    try {
+      const payload: UpdateResidentRequest = {
+        username: editForm.username,
+        room_number: editForm.room_number,
+        phone_number: editForm.phone_number,
+      };
+      if (editForm.password) {
+        payload.password = editForm.password;
+      }
+      const response = await usersAPI.updateResident(editingResident.id, payload);
+      if (response.success) {
+        loadResidents();
+        setEditingResident(null);
+        setMessage({ type: 'success', text: 'อัปเดตข้อมูลเรียบร้อย' });
+        setTimeout(() => setMessage(null), 3000);
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัปเดต' });
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDelete = async (resident: User) => {
+    if (!window.confirm(`ยืนยันการลบผู้อาศัย "${resident.username}" (ห้อง ${resident.room_number || '-'})?`)) {
+      return;
+    }
+    setDeleteLoadingId(resident.id);
+    try {
+      const response = await usersAPI.deleteResident(resident.id);
+      if (response.success) {
+        loadResidents();
+        setMessage({ type: 'success', text: 'ลบผู้ใช้งานเรียบร้อย' });
+        setTimeout(() => setMessage(null), 3000);
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'เกิดข้อผิดพลาดในการลบ' });
+    } finally {
+      setDeleteLoadingId(null);
+    }
   };
 
   const filteredResidents = residents.filter(resident =>
@@ -187,6 +257,9 @@ const UserList: React.FC<UserListProps> = ({ user, onLogout }) => {
                     <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                       วันที่สร้าง
                     </th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ดำเนินการ
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -206,6 +279,33 @@ const UserList: React.FC<UserListProps> = ({ user, onLogout }) => {
                           {new Date().toLocaleDateString('th-TH')}
                         </div>
                       </td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(resident)}
+                            className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            title="แก้ไข"
+                          >
+                            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            แก้ไข
+                          </button>
+                          <button
+                            onClick={() => handleDelete(resident)}
+                            disabled={deleteLoadingId === resident.id}
+                            className={`inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
+                              deleteLoadingId === resident.id ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                            title="ลบ"
+                          >
+                            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            {deleteLoadingId === resident.id ? 'กำลังลบ...' : 'ลบ'}
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -214,6 +314,112 @@ const UserList: React.FC<UserListProps> = ({ user, onLogout }) => {
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editingResident && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center p-4 z-50">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">
+                แก้ไขข้อมูลผู้อาศัย
+              </h3>
+              <button
+                onClick={() => setEditingResident(null)}
+                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-4 space-y-4">
+              <div>
+                <label htmlFor="edit-username" className="block text-sm font-medium text-gray-700">
+                  ชื่อผู้ใช้
+                </label>
+                <input
+                  id="edit-username"
+                  name="username"
+                  type="text"
+                  required
+                  value={editForm.username}
+                  onChange={handleEditFormChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="edit-room" className="block text-sm font-medium text-gray-700">
+                  เลขห้อง
+                </label>
+                <input
+                  id="edit-room"
+                  name="room_number"
+                  type="text"
+                  required
+                  value={editForm.room_number}
+                  onChange={handleEditFormChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="edit-phone" className="block text-sm font-medium text-gray-700">
+                  เบอร์โทรศัพท์
+                </label>
+                <input
+                  id="edit-phone"
+                  name="phone_number"
+                  type="tel"
+                  required
+                  value={editForm.phone_number}
+                  onChange={handleEditFormChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="edit-password" className="block text-sm font-medium text-gray-700">
+                  รหัสผ่าน <span className="text-gray-400 font-normal">(เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</span>
+                </label>
+                <input
+                  id="edit-password"
+                  name="password"
+                  type="password"
+                  minLength={6}
+                  value={editForm.password}
+                  onChange={handleEditFormChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร (ไม่บังคับ)"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingResident(null)}
+                  disabled={editLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    editLoading
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {editLoading ? 'กำลังบันทึก...' : 'บันทึก'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <AddResidentModal
         isOpen={showAddResidentModal}

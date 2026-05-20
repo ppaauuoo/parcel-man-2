@@ -343,6 +343,122 @@ app.get('/api/users/residents', authenticateToken, requireRole('staff'), async (
   }
 });
 
+// Update resident (staff only)
+app.put('/api/users/:id', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
+  try {
+    const { id } = req.params;
+    const { username, room_number, phone_number, password } = req.body;
+
+    const user = await db.get(
+      'SELECT id, role FROM users WHERE id = ?',
+      [id]
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found', message: 'ไม่พบผู้ใช้งานนี้' });
+    }
+
+    if (user.role !== 'resident') {
+      return res.status(400).json({ error: 'Invalid role', message: 'สามารถแก้ไขเฉพาะผู้อาศัยเท่านั้น' });
+    }
+
+    // Check username uniqueness if changed
+    if (username) {
+      const existing = await db.get(
+        'SELECT id FROM users WHERE username = ? AND id != ?',
+        [username, id]
+      );
+      if (existing) {
+        return res.status(400).json({ error: 'Username taken', message: 'ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว' });
+      }
+    }
+
+    // Check room_number uniqueness if changed
+    if (room_number) {
+      const existing = await db.get(
+        'SELECT id FROM users WHERE room_number = ? AND id != ? AND role = "resident"',
+        [room_number, id]
+      );
+      if (existing) {
+        return res.status(400).json({ error: 'Room taken', message: 'ห้องนี้มีผู้อาศัยอยู่แล้ว' });
+      }
+    }
+
+    const updates: string[] = [];
+    const params: any[] = [];
+
+    if (username) { updates.push('username = ?'); params.push(username); }
+    if (room_number) { updates.push('room_number = ?'); params.push(room_number); }
+    if (phone_number) { updates.push('phone_number = ?'); params.push(phone_number); }
+    if (password) {
+      const hashed = await hashPassword(password);
+      updates.push('password = ?');
+      params.push(hashed);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update', message: 'กรุณาระบุข้อมูลที่ต้องการแก้ไข' });
+    }
+
+    params.push(id);
+    await db.run(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      ...params
+    );
+
+    const updated = await db.get(
+      'SELECT id, username, room_number, phone_number FROM users WHERE id = ?',
+      [id]
+    );
+
+    return res.json({ success: true, message: 'อัปเดตข้อมูลเรียบร้อย', user: updated });
+  } catch (error) {
+    console.error('Update user error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในระบบ' });
+  }
+});
+
+// Delete resident (staff only)
+app.delete('/api/users/:id', authenticateToken, requireRole('staff'), async (req: express.Request, res: express.Response) => {
+  try {
+    const { id } = req.params;
+
+    const user = await db.get(
+      'SELECT id, role FROM users WHERE id = ?',
+      [id]
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found', message: 'ไม่พบผู้ใช้งานนี้' });
+    }
+
+    if (user.role !== 'resident') {
+      return res.status(400).json({ error: 'Invalid role', message: 'สามารถลบเฉพาะผู้อาศัยเท่านั้น' });
+    }
+
+    // Check for active parcels
+    const activeParcels = await db.get(
+      'SELECT COUNT(*) as count FROM parcels WHERE resident_id = ? AND status = "pending"',
+      [id]
+    );
+
+    if (activeParcels.count > 0) {
+      return res.status(400).json({
+        error: 'Active parcels exist',
+        message: `ไม่สามารถลบได้ ผู้อาศัยนี้มีพัสดุรอรับ ${activeParcels.count} รายการ กรุณาดำเนินการก่อน`
+      });
+    }
+
+    await db.run('DELETE FROM parcels WHERE resident_id = ?', [id]);
+    await db.run('DELETE FROM users WHERE id = ?', [id]);
+
+    return res.json({ success: true, message: 'ลบผู้ใช้งานเรียบร้อย' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'เกิดข้อผิดพลาดในระบบ' });
+  }
+});
+
 // Get profile
 app.get('/api/users/profile', authenticateToken, async (req: express.Request, res: express.Response) => {
   return res.json({
